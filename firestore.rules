@@ -134,12 +134,13 @@ service cloud.firestore {
     function subeMuduru() { return aktif() && ben().rol == 'sube'; }
     function subeAlanUygun() {
       return !subeMuduru()
-        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sgkSube', 'anaSube', 'giris', 'cikis', 'maasSubeGecmis', 'maasYeri']);
+        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['sgkSube', 'anaSube', 'giris', 'cikis', 'maasSubeGecmis', 'maasYeri', 'cizelgesiz']);
     }
     function subeYeniUygun() {
       return !subeMuduru()
         || (request.resource.data.get('sgkSube', '') == '' && request.resource.data.get('giris', '') == ''
-            && request.resource.data.get('cikis', '') == '' && !('maasSubeGecmis' in request.resource.data));
+            && request.resource.data.get('cikis', '') == '' && !('maasSubeGecmis' in request.resource.data)
+            && !('cizelgesiz' in request.resource.data));
     }
     match /personel/{p} {
       allow read: if subede(resource.data.get('anaSube', ''))
