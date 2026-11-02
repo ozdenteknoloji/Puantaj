@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=180;
+const APP_SURUM=181;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1490,12 +1490,12 @@ function renderPuantaj(){if(!puantajYetki())return;S.ay=aktifAy('puantaj');
     document.querySelectorAll('.row[data-id]').forEach(b=>b.onclick=()=>puantajAc(b.dataset.id));});}
 let listeAy=null;function listeDinle(ak){if(listeAy===ak+S.subeIds.join())return;listeAy=ak+S.subeIds.join();subs.liste.forEach(u=>u());subs.liste=[];
   S.subeIds.forEach(id=>subs.liste.push(onSnapshot(doc(db,'subeler',id,'aylar',ak),s=>{S.pt.listeAylar[id+'|'+ak]=s.exists()?s.data():{durum:'taslak'};if(S.tab==='puantaj'&&!S.pt.sube)render();},()=>{})));}
-function puantajAc(id){if(S.subeId!==id)selectSube(id);S.pt.sube=id;S.pt.doc=null;S.pt.ham=null;S.pt.maas=null;S.pt.prev=null;S.pt.ozetler=null;S.pt.ozetVeri=null;S.pt.ozetHata=false;subs.detay.forEach(u=>u());subs.detay=[];const ak=S.ay;
-  S.pt.temiz=false;subs.detay.push(onSnapshot(doc(db,'puantaj',id,'aylar',ak),s=>{if(S.pt.sube!==id||S.ay!==ak)return;S.pt.ham=s.exists()?s.data():{};S.pt.doc={...S.pt.ham,veri:bekleyenUygula(id,ak,veriListesi(S.pt.ham))};if(!S.pt.temiz){S.pt.temiz=true;veriBosTemizle();}render();},e=>{S.pt.doc={};yazmaHatasi(e);}));
-  subs.detay.push(onSnapshot(doc(db,'maaslar',id),s=>{S.pt.maas=s.exists()?s.data():{};render();},()=>{S.pt.maas={};}));
+function puantajAc(id){if(S.subeId!==id)selectSube(id);S.pt.sube=id;S.pt.ak=S.ay;S.pt.doc=null;S.pt.ham=null;S.pt.maas=null;S.pt.prev=null;S.pt.ozetler=null;S.pt.ozetVeri=null;S.pt.ozetHata=false;subs.detay.forEach(u=>u());subs.detay=[];const ak=S.ay;
+  S.pt.temiz=false;subs.detay.push(onSnapshot(doc(db,'puantaj',id,'aylar',ak),s=>{if(S.pt.sube!==id||S.ay!==ak)return;S.pt.ham=s.exists()?s.data():{};S.pt.doc={...S.pt.ham,veri:bekleyenUygula(id,ak,veriListesi(S.pt.ham))};if(!S.pt.temiz){S.pt.temiz=true;veriBosTemizle();}render();},e=>{S.pt.doc={};yazmaHatasi(e);render();}));
+  subs.detay.push(onSnapshot(doc(db,'maaslar',id),s=>{S.pt.maas=s.exists()?s.data():{};render();},()=>{S.pt.maas={};render();}));
   // Diğer şubelerin ay özetleri (izin, saat): yüklenmeden puantaj gösterilmez ve onaylanmaz.
   getDocs(query(collection(db,'ozetler'),where('ay','==',ak))).then(q=>{if(S.pt.sube!==id||S.ay!==ak)return;const m={},vg={};q.docs.forEach(d=>{const x=d.data();if(x.sube){m[x.sube]=x.kisiler||{};vg[x.sube]=x.veriGun||{};}});S.pt.ozetVeri=vg;S.pt.ozetler=m;render();}).catch(e=>{console.error(e);if(S.pt.sube===id&&S.ay===ak){S.pt.ozetVeri={};S.pt.ozetler={};S.pt.ozetHata=true;render();}});
-  getDoc(doc(db,'puantaj',id,'aylar',ayKaydir(ak,-1))).then(s=>{S.pt.prev=s.exists()?s.data():{};render();}).catch(()=>{S.pt.prev={};});render();}
+  getDoc(doc(db,'puantaj',id,'aylar',ayKaydir(ak,-1))).then(s=>{S.pt.prev=s.exists()?s.data():{};render();}).catch(()=>{S.pt.prev={};render();});render();}
 function ucretSekli(pid){const kp=S.personel.find(x=>x.id===pid);if(kp&&kp.paketBasi===true)return'paket';/* kişi paket başı: her şubede */const m=S.pt.maas||{};const u=m.ucretSekli&&m.ucretSekli[pid];if(u)return u;return m.paketBasi&&m.paketBasi[pid]?'paket':'maas';}
 function paketBasiMi(pid){return ucretSekli(pid)==='paket';}
 // Paket başı kuryede bordro tutarı (bankaya yatan) en çok çalıştığı şubeye yazılır (çizelgedeki vardiyalı gün sayısı; eşitse maaş/SGK şubesi). Diğerlerinde maaşın ödendiği şube.
@@ -1542,7 +1542,7 @@ function saklananFark(V){if(!(V.kilitli||V.kesin))return[];const yeni=ptSol(V.ak
     if((a.maasBurada!==false)!==(b.maasBurada!==false))d.push(b.maasBurada!==false?'maaşı artık bu şubede':'maaşı artık başka şubede');if(d.length)L.push({ad:a.ad||pid,t:d.join(', ')});});
   const kul=new Set(Object.values(es));Object.keys(yeni).forEach(pid=>{if(kul.has(pid))return;const b=yeni[pid];if(sayi(b.gun)||sayi(b.hakGun)||Math.abs(sayi(b.fmSaat))>0.004)L.push({ad:b.ad||pid,t:'onayda yoktu'});});
   return L;}
-function renderPuantajDetay(){const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
+function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
   const subeSec=S.subeIds.length>1?`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsel"><select id="ptSube" aria-label="Şube seç">${S.subeIds.map(i=>`<option value="${esc(i)}" ${i===S.pt.sube?'selected':''}>${esc((S.subeler[i]||{}).ad||i)}</option>`).join('')}</select></div></div>`:`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsube1">${esc(sb.ad)}</div></div>`;
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${D.ad}</span></div><div class="ptnav">${subeSec}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button></div></div>`;
   const ayDeg=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;veriBosTemizle();S.ay=y;S.ayElle=true;S.pt.vsel=null;puantajAc(S.pt.sube);};
