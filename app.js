@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=185;
+const APP_SURUM=186;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1536,6 +1536,18 @@ function ptVerisi(){const ak=S.ay;const D=S.pt.doc||{};
 // Onaylı / kesin ayda saklanan muhasebe rakamları ile bugünkü hesap farklı mı (onaydan sonra çizelge, personel bilgisi ya da program değişti).
 // Sadece gösterir; saklanan rakamlara dokunmaz. Düzeltmek için kilit açılıp yeniden onaylanır.
 const FARK_ALAN=[['gun','gün'],['hakGun','çalışılan gün'],['rapor','rapor'],['ucretsiz','ücr. izin'],['yillik','yıllık izin'],['bayram','bayram'],['partGun','part gün'],['fmSaat','FM saat']];
+// Bir kişinin bugünkü çizelgeye göre günleri: çalışılan günler, izin günleri ve fazla mesai saatine giren günler (hangi günlerden oluştuğunu görmek için).
+function gunDokumu(pid,ak){try{const p0=S.personel.find(x=>x.id===pid);if(!p0)return null;const p=gorevAyda(p0,ak);const sb=subeAyari(S.subeId,ak);const H=S.haftalar;const g=sb.gunluk;
+  const[y,m]=ak.split('-').map(Number);const last=new Date(y,m,0);const gn=t=>{const d=typeof t==='string'?parse(t):t;return d.getDate()+' '+AYK[d.getMonth()];};
+  let n=0,ilk=null,son=null;const kod=[];
+  for(let d=new Date(y,m-1,1);d<=last;d=addDays(d,1)){if(!employed(p,d))continue;n++;if(!ilk)ilk=d;son=d;const v=cellOf(p.id,mondayOf(d),(d.getDay()+6)%7,H);if(v&&KOD[v]&&v!=='HT')kod.push(gn(d)+' '+KOD[v].ad.toLowerCase());}
+  const fm=[];const fmYok=p.sekil==='Part'||isEsnaf(p);
+  const gun=d=>{if(!employed(p,d))return;const wid=mondayOf(d),i=(d.getDay()+6)%7,v=cellOf(p.id,wid,i,H),kayit=weekHasEntry(p.id,wid,H);if(!kayit)return;
+    if(isShift(v)){const f=shiftHours(v)-g;if(Math.abs(f)>0.004)fm.push({t:ymd(d),f,a:v.replace('-','–')});}else if(!(v&&KOD[v])&&bosSayilir(p,d))fm.push({t:ymd(d),f:-g,a:'boş'});
+    if(i===6){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm.push({t:ymd(d),f:7*g-sb.haftalik,a:'7 gün çalışma'});}};
+  if(!fmYok){if(sb.fmDonem==='hafta'){const r=fmDonemAraligi(ak,S.subeId,sb);const W=fmHaftalari(ak);for(let d=parse(r.bas);ymd(d)<W[0];d=addDays(d,1))gun(d);W.forEach(w=>weekDays(w).forEach(gun));}
+    else{const bas=fmDonemAraligi(ak,S.subeId,sb).bas;for(let d=new Date(y,m-1,1);d<=last;d=addDays(d,1))if(ymd(d)>=bas)gun(d);}}
+  return{n,aralik:ilk?(gn(ilk)+' – '+gn(son)):'',kod,fm,gunluk:g,fmYok,gn};}catch(e){console.error(e);return null;}}
 function saklananFark(V){if(!(V.kilitli||V.kesin))return[];const yeni=ptSol(V.ak,V.D||{}),eski=V.sol||{};const L=[];const kisi=(pid,r)=>S.personel.find(x=>x.id===pid)||{id:pid,ad:(r&&r.ad)||''};
   const es={};Object.keys(eski).forEach(pid=>{if(yeni[pid]){es[pid]=pid;return;}const p=kisi(pid,eski[pid]);const q=Object.keys(yeni).find(y=>!eski[y]&&!Object.values(es).includes(y)&&ayniKisi(kisi(y,yeni[y]),p));if(q)es[pid]=q;});
   Object.keys(eski).forEach(pid=>{const a=eski[pid]||{},b=yeni[es[pid]];if(!b){if(sayi(a.gun)||sayi(a.hakGun)||Math.abs(sayi(a.fmSaat))>0.004)L.push({ad:a.ad||pid,t:'güncel hesapta yok'});return;}
@@ -1543,7 +1555,7 @@ function saklananFark(V){if(!(V.kilitli||V.kesin))return[];const yeni=ptSol(V.ak
     // Onaydan beri kişinin kartında değişen bilgiler (neden için ipucu)
     const pk=[];[['giris','SGK giriş tarihi'],['cikis','çıkış tarihi'],['baslama','işe başlama tarihi'],['sekil','çalışma şekli'],['sgkSube','SGK şubesi']].forEach(([f,n])=>{const e0=a[f]||'',y0=b[f]||'';if(e0!==y0){const g=/^\d{4}-\d\d-\d\d$/.test(e0||y0)?trTarih:z=>z;pk.push(`${n}: ${e0?g(e0):'boş'} → ${y0?g(y0):'boş'}`);}});
     if((a.maasBurada!==false)!==(b.maasBurada!==false)){const m=b.maasBurada!==false?'maaşı artık bu şubede':'maaşı artık başka şubede';d.push(m);pk.push('Maaş: '+m);}
-    if(d.length)L.push({ad:a.ad||pid,t:d.join(', '),dd,pk});});
+    if(d.length)L.push({ad:a.ad||pid,t:d.join(', '),dd,pk,yp:es[pid]});});
   const kul=new Set(Object.values(es));Object.keys(yeni).forEach(pid=>{if(kul.has(pid))return;const b=yeni[pid];if(sayi(b.gun)||sayi(b.hakGun)||Math.abs(sayi(b.fmSaat))>0.004)L.push({ad:b.ad||pid,t:'onayda yoktu'});});
   return L;}
 function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
@@ -1578,6 +1590,13 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
         if(x.dd&&x.dd.length){b+=x.dd.map(z=>`<div style="margin-top:3px">• ${esc(ET[z.k]||z.n)}: onayda <b>${fmt(z.e)}</b>, şimdi <b>${fmt(z.y)}</b> (${isaret(z.y-z.e)})</div>`).join('');
           b+=`<div style="margin-top:3px">${x.pk&&x.pk.length?`Neden: kişi bilgisi değişmiş — ${x.pk.map(esc).join('; ')}.`:'Neden: kişi bilgisi aynı; fark onaydan sonra bu kişinin çizelgesinde (ya da diğer şubelerdeki girişlerinde) yapılan değişiklikten geliyor. Çizelgede bu kişinin satırına bakın.'}</div>`;}
         else b+=`<div style="margin-top:3px">${x.t==='onayda yoktu'?'Onay sırasında listede yoktu, şimdi hesapta var (onaydan sonra eklenmiş ya da çizelgede çalışması işlenmiş).':x.t==='güncel hesapta yok'?'Onayda vardı, şimdi hesapta yok (çıkarılmış ya da çizelgedeki günleri silinmiş).':esc(x.t)}</div>`;
+        const G=x.dd&&x.dd.length&&x.yp?gunDokumu(x.yp,V.ak):null;
+        if(G){const fd=x.dd.find(z=>z.k==='fmSaat');const hd=x.dd.find(z=>z.k==='hakGun');
+          b+=`<div style="margin-top:6px;padding:6px 8px;background:rgba(255,255,255,.55);border-radius:8px"><b>Bugünkü çizelgeye göre günler</b> <span style="opacity:.8">(onaydaki günlük çizelge saklanmadığı için hangi günün değiştiği kesin bilinmez; şimdiki durumun hangi günlerden oluştuğu aşağıda)</span>`;
+          if(hd)b+=`<div style="margin-top:4px">Çalışılan günler: <b>${esc(G.aralik||'—')}</b> (${G.n} takvim günü)${G.kod.length?'; izin / rapor: '+G.kod.map(esc).join(', '):'; izin / rapor günü yok'}.</div>`;
+          if(fd){const top=G.fm.reduce((a,z)=>a+z.f,0);b+=`<div style="margin-top:4px">Fazla mesai saatine giren günler (toplam <b>${fmt(Math.round(top*100)/100)}</b> sa, günlük ${fmt(G.gunluk)} sa): ${G.fm.length?G.fm.map(z=>`<span style="white-space:nowrap"><b>${esc(G.gn(z.t))}</b> ${esc(z.a)} (${isaret(Math.round(z.f*100)/100)})</span>`).join(' · '):'yok'}.</div>`;
+            b+=`<div style="margin-top:4px">Onaydan beri fark <b>${isaret(Math.round((fd.y-fd.e)*100)/100)} sa</b>${G.gunluk?` ≈ ${fmt(Math.round(Math.abs(fd.y-fd.e)/G.gunluk*10)/10)} günlük`:''} — yukarıdaki günlerden bu kadarı onaydan sonra eklenmiş ya da değişmiş olmalı.</div>`;}
+          b+='</div>';}
         return b+'</div>';};
       h+=`<div class="banner bad"><b>Onaydan sonra ${F.length} kişinin rakamı değişmiş.</b> Muhasebeye giden ve saklanan rakamlar hâlâ onaydaki gibi duruyor; "şimdi" yazanlar bugünkü çizelge ve kişi bilgisiyle hesaplanan değerler. Güncel hali kullanmak için ${V.kesin?'kesin kapanışı ve ':''}kilidi açıp yeniden onaylayın; gerek yoksa bir şey yapmayın.${F.slice(0,12).map(blok).join('')}${F.length>12?`<div style="font-weight:400;margin-top:8px">ve ${F.length-12} kişi daha</div>`:''}</div>`;}}
   h+=`<div class="seg" style="margin:4px 0 12px" id="ptSeg"><button data-v="sol" class="${S.pt.gorunum==='sol'?'on':''}">Muhasebe</button><button data-v="sag" class="${S.pt.gorunum==='sag'?'on':''}">Ödemeler</button><button data-v="veri" class="${S.pt.gorunum==='veri'?'on':''}">Veri girişi</button></div>`;
