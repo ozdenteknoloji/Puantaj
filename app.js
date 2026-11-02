@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword,
   updatePassword, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocs, setDoc as fsSetDoc, updateDoc as fsUpdateDoc, deleteDoc as fsDeleteDoc, onSnapshot, collection, writeBatch as fsWriteBatch, query, where, runTransaction as fsRunTransaction, arrayUnion, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, waitForPendingWrites, doc, getDoc, getDocs, setDoc as fsSetDoc, updateDoc as fsUpdateDoc, deleteDoc as fsDeleteDoc, onSnapshot, collection, writeBatch as fsWriteBatch, query, where, runTransaction as fsRunTransaction, arrayUnion, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, GIRIS_ALANI } from "./config.js?v=67";
 
 /* ================= Sabitler ================= */
@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=188;
+const APP_SURUM=189;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -472,6 +472,11 @@ function sagHesap(pid,sol,sag,net,sb,devir,ek={},us={},kapi=false){const e=k=>ek
 
 /* ================= Yazma ================= */
 const kuyruk={};function sirayla(key,fn){kuyruk[key]=(kuyruk[key]||Promise.resolve()).then(fn).catch(yazmaHatasi);return kuyruk[key];}
+// Haftayı kapatmadan / onaylamadan önce: sıradaki hücre yazmaları (yapıştırma, kopyalama) bitsin ve sunucuya ulaşsın.
+// Aksi halde kapatma önce gider, kural kapalı haftaya hücre yazdırmaz ve yapıştırılan değerler kaybolur.
+async function haftaYazmalariniBekle(sid,wid){await (kuyruk[sid+'|'+wid]||Promise.resolve());
+  const ok=await Promise.race([waitForPendingWrites(db).then(()=>true),new Promise(r=>setTimeout(()=>r(false),12000))]);
+  if(!ok)throw new Error('Kaydedilmemiş değişiklikler var (bağlantı yavaş ya da yok). Biraz bekleyip tekrar deneyin.');}
 function yazmaHatasi(e){console.error(e);const c=e&&e.code||'';
   if(c.includes('permission'))toast('Bu işlem için yetkiniz yok.');else if(c.includes('unavailable'))toast('Bağlantı yok. İnternet gelince tekrar deneyin.');else toast('Kaydedilemedi: '+(e.message||c));}
 const gerekliSube=sid=>{if(!sid)throw new Error('Şube belirtilmeden yazma engellendi');return sid;};
@@ -986,7 +991,7 @@ async function haftaKapatPanel(wid,onayDa){await gunleriYukle(cizelgeKisileri(wi
 function haftaOzHesap(wid){const sb=haftaAyari(wid);const oz={};const k=kadroDoc(wid)||[];
   k.forEach(pid=>{const p=S.personel.find(x=>x.id===pid);if(!p||!weekHasEntry(pid,wid))return;const x=haftaHesap(p,wid,sb);oz[pid]={h:Math.round(x.h*100)/100,fm:Math.round(x.fm*100)/100,a:haftaAyParca(p,wid,sb)};});return oz;}
 async function haftayiKapat(wid,onayDa=false){const sid=S.subeId;const t=new Date().toISOString();const ad=benAd();const d=onayDa?'onay':'kapali';
-  if(!sunucuHazir(sid))throw hazirDegil();await gunleriYukle(cizelgeKisileri(wid),haftaAylari(wid));if(!sunucuHazir(sid))throw hazirDegil();
+  if(!sunucuHazir(sid))throw hazirDegil();await haftaYazmalariniBekle(sid,wid);await gunleriYukle(cizelgeKisileri(wid),haftaAylari(wid));if(!sunucuHazir(sid))throw hazirDegil();
   // Haftanın listesinde olmayan çalışanlar (paket başı / esnaf hariç): çalıştığı günler ücretsiz izin olarak çizelgeye yazılır, listeye eklenir.
   const yokC={};{const ds=weekDays(wid);for(const x of haftaKontrol(wid).yok){const p=x.p;const c={};
       for(let i=0;i<7;i++){const d=ds[i];if(!employed(p,d)||!cizelgeYazabilir(d)||cellOf(p.id,wid,i))continue;
@@ -1003,7 +1008,7 @@ async function haftayiKapat(wid,onayDa=false){const sid=S.subeId;const t=new Dat
 // Hafta onaylandıktan sonra şubeler arası ay özeti; yazılamazsa kullanıcı uyarılır (hafta onayı geçerli kalır).
 async function ozetGuncelle(aklar,sid){try{await ozetYaz(aklar,sid);}catch(e){console.error(e);toast('Hafta onaylandı ama ay özeti güncellenemedi (bağlantı ya da şube değişti). Haftanın kilidini açıp yeniden onaylayın.');}}
 async function haftaOnayla(wid){const sid=S.subeId;const t=new Date().toISOString();const ad=benAd();const w0=S.haftalar[wid]||{};
-  if(!sunucuHazir(sid)){yazmaHatasi(hazirDegil());return false;}await gunleriYukle(cizelgeKisileri(wid),haftaAylari(wid));if(!sunucuHazir(sid)){yazmaHatasi(hazirDegil());return false;}const dw=(S.haftaDurum.w||{})[wid]||{};
+  if(!sunucuHazir(sid)){yazmaHatasi(hazirDegil());return false;}try{await haftaYazmalariniBekle(sid,wid);}catch(e){yazmaHatasi(e);return false;}await gunleriYukle(cizelgeKisileri(wid),haftaAylari(wid));if(!sunucuHazir(sid)){yazmaHatasi(hazirDegil());return false;}const dw=(S.haftaDurum.w||{})[wid]||{};
   const b=writeBatch(db);b.set(weekRef(wid,sid),{hd:'onay',onayTarihi:t,onaylayanAd:ad,kayit:arrayUnion({t,ad,i:'onayladı'})},{merge:true});
   b.set(durumRef(sid),{w:{[wid]:{d:'onay',t:dw.t||w0.kapatma||t,ad:dw.ad||w0.kapatanAd||ad,oz:haftaOzHesap(wid),k:(kadroDoc(wid)||[]).slice()}}},{mergeFields:['w.'+wid]});
   try{await b.commit();}catch(e){yazmaHatasi(e);return false;}toast(`${rangeLabel(wid)} onaylandı.`);await ozetGuncelle(haftaAylari(wid),sid);return true;}
