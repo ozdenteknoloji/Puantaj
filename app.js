@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=183;
+const APP_SURUM=184;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1720,7 +1720,6 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   const ayAralik=(()=>{const L=ymd(new Date(+ak.slice(0,4),+ak.slice(5),0));return `1–${+L.slice(8)} ${AYK[+ak.slice(5)-1]}`;})();
   V.satir.forEach(x=>{if(x.hes.saat&&x.hes.cizelgeSaat)oto.push({pid:x.pid,on:'sa',tur:'SA',miktar:x.hes.cizelgeSaat,aciklama:`çizelgedeki saatler (${ayAralik})`});});
   V.satir.forEach(x=>{Object.entries(x.sol.disVeri||{}).forEach(([k,v])=>{if(Math.abs(v)>0.001)oto.push({pid:x.pid,tur:k,miktar:v,aciklama:'başka şubenin veri girişinden',kaynak:'başka şube'});});});
-  V.satir.forEach(x=>{if(x.hes.devirAvans)oto.push({pid:x.pid,tur:'AV',miktar:x.hes.devirAvans,aciklama:`devir avans (${ayAdi(ayKaydir(ak,-1))})`});});
   oto.sort((a,b)=>String(adOf(a.pid)).localeCompare(String(adOf(b.pid)),'tr'));
   const opt=(v,t,sel)=>`<option value="${esc(v)}" ${sel?'selected':''}>${esc(t)}</option>`;
   const hataSay=veri.filter(v=>veriKontrol(v,kL,ak,V.kilitli,V).gecersiz).length;const uyariSay=veri.filter(v=>veriKontrol(v,kL,ak,V.kilitli,V).uyari).length;
@@ -1738,6 +1737,10 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   let h=`${V.kesin?'':'<div class="actions" style="margin-top:0"><button class="btn grow" id="bordroB">Bordro PDF yükle</button></div>'}${hataSay?`<div class="banner bad">${hataSay} satırda veri uyuşmazlığı var (kırmızı). Bu satırlar hesaba katılmaz; ismi ya da türü düzeltin.</div>`:''}${uyariSay?`<div class="banner">${uyariSay} satırda uyarı var (sarı). Satırdaki yazıyı okuyun: rapor / izin aynı gün çizelgede ya da başka şubede de yazılmış (iki kez sayılır) veya kişinin o ay çalıştığı günden fazla rapor / izin girilmiş olabilir.</div>`:''}
    ${kfAktifMi('veri')?`<div class="kfbar">Filtre açık · ${VIS.length} / ${veri.length} satır gösteriliyor <button class="mini" id="kfHepsiV">Filtreleri kaldır</button></div>`:''}
    <div class="tbl-wrap"><table class="pt vt vg2" id="vGrid" tabindex="0"><thead><tr>${VC.map(c=>kfBaslik('veri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>`;
+  // Geçen aydan devreden avans: hesapta zaten otomatik var; tablonun en üstünde salt okunur satır olarak görünür (elle yazılırsa iki kez sayılır).
+  {const fA=kfAktifMi('veri');const vP=new Set(VIS.map(x=>x.v.pid).filter(Boolean));const sp=(t,st='')=>`<td class="bi${t}"${st?` style="${st}"`:''}><span style="display:block;padding:8px 6px;font-size:14px;font-weight:600;color:var(--mut)">`;
+   V.satir.filter(x=>x.hes.devirAvans&&(!fA||vP.has(x.pid))).sort((a,b)=>String(adOf(a.pid)).localeCompare(String(adOf(b.pid)),'tr')).forEach(x=>{
+    h+=`<tr class="oto devir">${sp('')}${esc(trTarih(ak+'-01'))}</span></td>${sp(' l')}${esc(adBuyuk(adOf(x.pid)))}</span></td>${sp(' l')}Avans</span></td>${sp('','text-align:right')}${esc(fmt(x.hes.devirAvans))}</span></td>${sp(' l')}Geçen aydan devreden avans (${esc(ayAdi(ayKaydir(ak,-1)))})</span></td><td class="l dur"><span class="chip mut">otomatik · hesapta var, tekrar yazmayın</span></td><td></td></tr>`;});}
   VIS.forEach((x,r)=>{const v=x.v;const k=x.k;const kil=V.kesin||(V.kilitli&&veriTur(v.tur)&&veriTur(v.tur).y==='sol'&&!k.gecersiz);
     h+=`<tr data-vid="${esc(v.id)}" data-r="${r}" class="${k.gecersiz?'hata':''}">
      <td class="bi"><input data-c="0" readonly value="${esc(v.tarih?trTarih(v.tarih):'')}" placeholder="gg.aa.yyyy" ${kil?'disabled':''}></td>
