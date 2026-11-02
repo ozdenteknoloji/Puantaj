@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=182;
+const APP_SURUM=183;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -429,7 +429,7 @@ function solHesap(ak,sid=S.subeId,diger=S.pt.ozetler||{},ekIds=[]){const sb=sube
     if(kaynak.length){const bl=gunBirlestir(kaynak,sgkVar(p)?(d=>sgkli(p,parse(d))):null);t.R=bl.say.R;t.UI=bl.say.UI;t.YI=bl.say.YI;t.B=bl.say.B;t.cakisma=gunBirlestir(kaynak).cakisma;
       tH=fiiliGrup.length?gunBirlestir(kaynak,d=>fiiliGrup.some(x=>employed(x,parse(d)))).say:t;}
     // SGK şubesi ay içinde değişen kişi: işçilikte iki kaydın SGK günleri maaş şubesinde birlikte sayılır, tek kayıt gibi en çok 30 (31 günlük maaş yok).
-    const tgS=tg.filter(x=>!sgkYansiKayit(x));let ist=0,istF=0,istS=0;for(let d=new Date(y,m-1,1);d<=last;d=addDays(d,1)){if(sgkVar(p)&&!sgkYansiKayit(p)&&sgkli(p,d))ist++;/* SGK şubesi 'Boş' ise SGK günü yok */if(fiiliGrup.length?fiiliGrup.some(x=>employed(x,d)):employed(p,d))istF++;if(tgS.some(x=>sgkli(x,d)))istS++;}
+    const tgS=tg.filter(x=>x.giris&&!sgkYansiKayit(x));let ist=0,istF=0,istS=0;for(let d=new Date(y,m-1,1);d<=last;d=addDays(d,1)){if(sgkVar(p)&&p.giris&&!sgkYansiKayit(p)&&sgkli(p,d))ist++;/* SGK şubesi 'Boş' ise SGK günü yok */if(fiiliGrup.length?fiiliGrup.some(x=>employed(x,d)):employed(p,d))istF++;if(tgS.some(x=>sgkli(x,d)))istS++;}
     const eS=tg.length?(()=>{const b=kaynak.length?gunBirlestir(kaynak,d=>tgS.some(x=>sgkli(x,parse(d)))).say:t;return(b.R||0)+(b.UI||0);})():0;
     const gun=sgkGunSayisi(ist,last.getDate(),t.R+t.UI);const hakGun=sgkGunSayisi(istF,last.getDate(),tH.R+tH.UI);const part=p.sekil==='Part';const iscGun=tg.length&&maasBurada&&!part?sgkGunSayisi(istS,last.getDate(),eS):null;
     out[pid]={ad:p.ad,maasBurada,sgkSube:p.sgkSube===SGK_YOK?'':p.sgkSube?subeAdi(p.sgkSube):subeAdi(p.anaSube),sekil:p.sekil||'Tam',gorev:p.gorev||'',grup:p.grup||'K',giris:p.giris||'',cikis:p.cikis||'',
@@ -437,7 +437,7 @@ function solHesap(ak,sid=S.subeId,diger=S.pt.ozetler||{},ekIds=[]){const sb=sube
       gunTaban:{ist,istF,takvim:last.getDate(),e:t.R+t.UI,eH:tH.R+tH.UI,...(iscGun!=null?{iS:istS,eS}:{})},...(iscGun!=null?{iscGun}:{}),// veri girişindeki rapor / ücretsiz izin gün sayısını aynı kuralla düşürmek için
       muhSekil:p.sekil||'Tam',
       fmSaat:o.fm,calisilanSaat:o.saat,gun:tumGun?gun:0,hakGun:tumGun?hakGun:0,// part: bordro günü = part gün (veri girişinden); girilmemişse normal gün
-      baslama:p.baslama&&p.baslama<(p.giris||'9')?p.baslama:'',sgkDisi:sgkDisi?1:0,bosGun:o.bos,baska:t.baska,cakisma:t.cakisma,sgkYok:p.sgkSube===SGK_YOK};});
+      baslama:p.baslama&&p.baslama<(p.giris||'9')?p.baslama:'',sgkDisi:sgkDisi?1:0,bosGun:o.bos,baska:t.baska,cakisma:t.cakisma,sgkYok:p.sgkSube===SGK_YOK,girisYok:sgkVar(p)&&!p.giris&&!sgkYansiKayit(p)?1:0};});
   return out;}
 // Muhasebeye giden tarafta sadece SGK'sı bu şubede olanlar; başka şubenin SGK'lısı ve SGK'sı olmayanlar sadece ödemelerde.
 // Muhasebede görev adı: kuryeler muhasebenin kullandığı şekilde "Sürücü" yazılır
@@ -1557,6 +1557,7 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
   const V=ptVerisi();const ad=S.aylar[ak]||{};kalanTazele(V);veriGunSenkron();
   if(sb.fmDonem==='hafta')h+=`<div class="banner ok">Fazla mesai dönemi: ${fmDonemYazi(ak,sb)} (haftalık). Rapor, izin ve bordro günü takvim ayına göre.</div>${fmSecici(ak,sb)}`;
   else if(fmDonemYazi(ak,sb))h+=`<div class="banner ok">Fazla mesai dönemi: ${fmDonemYazi(ak,sb)}. Önceki günler ${ayAdi(ayKaydir(ak,-1))} haftalık döneminde ödendi. Rapor, izin ve bordro günü takvim ayına göre.</div>`;
+  {const gy=V.satir.filter(x=>x.sol.girisYok&&x.sol.sekil!=='Esnaf kurye');if(gy.length)h+=`<div class="banner bad">SGK girişi yazılmamış, muhasebe tarafında görünmüyor (${gy.length} kişi): ${gy.map(x=>esc(x.sol.ad)).join(', ')}. SGK giriş tarihi Personel'den yazılınca muhasebeye geçer; o zamana kadar sadece Ödemeler tarafında.</div>`;}
   {const hk=Object.entries(S.pt.hata||{}).filter(([k])=>k!=='ozet');if(hk.length)h+=`<div class="banner bad">Okunamayan kısım: ${hk.map(([k,c])=>esc(({doc:'Puantaj kaydı',maas:'Maaş bilgileri',prev:'Önceki ay'}[k]||k)+' ('+c+')')).join(', ')}. Sayfayı yenileyin, düzelmeden onaylamayın.</div>`;}
   if(S.pt.ozetHata)h+=`<div class="banner bad">Diğer şubelerin bu ayki özetleri okunamadı; başka şubelerdeki izin ve saatler eksik görünebilir. Sayfayı yenileyin, düzelmeden onaylamayın.</div>`;
   if(gunHataVar())h+=`<div class="banner bad">${GUN_HATA_YAZI}</div>`;
