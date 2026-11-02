@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=184;
+const APP_SURUM=185;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1539,8 +1539,11 @@ const FARK_ALAN=[['gun','gün'],['hakGun','çalışılan gün'],['rapor','rapor'
 function saklananFark(V){if(!(V.kilitli||V.kesin))return[];const yeni=ptSol(V.ak,V.D||{}),eski=V.sol||{};const L=[];const kisi=(pid,r)=>S.personel.find(x=>x.id===pid)||{id:pid,ad:(r&&r.ad)||''};
   const es={};Object.keys(eski).forEach(pid=>{if(yeni[pid]){es[pid]=pid;return;}const p=kisi(pid,eski[pid]);const q=Object.keys(yeni).find(y=>!eski[y]&&!Object.values(es).includes(y)&&ayniKisi(kisi(y,yeni[y]),p));if(q)es[pid]=q;});
   Object.keys(eski).forEach(pid=>{const a=eski[pid]||{},b=yeni[es[pid]];if(!b){if(sayi(a.gun)||sayi(a.hakGun)||Math.abs(sayi(a.fmSaat))>0.004)L.push({ad:a.ad||pid,t:'güncel hesapta yok'});return;}
-    const d=FARK_ALAN.filter(([k])=>Math.abs(sayi(a[k])-sayi(b[k]))>0.004).map(([k,n])=>`${n} ${fmt(sayi(a[k]))} → ${fmt(sayi(b[k]))}`);
-    if((a.maasBurada!==false)!==(b.maasBurada!==false))d.push(b.maasBurada!==false?'maaşı artık bu şubede':'maaşı artık başka şubede');if(d.length)L.push({ad:a.ad||pid,t:d.join(', ')});});
+    const dd=FARK_ALAN.filter(([k])=>Math.abs(sayi(a[k])-sayi(b[k]))>0.004).map(([k,n])=>({k,n,e:sayi(a[k]),y:sayi(b[k])}));const d=dd.map(z=>`${z.n} ${fmt(z.e)} → ${fmt(z.y)}`);
+    // Onaydan beri kişinin kartında değişen bilgiler (neden için ipucu)
+    const pk=[];[['giris','SGK giriş tarihi'],['cikis','çıkış tarihi'],['baslama','işe başlama tarihi'],['sekil','çalışma şekli'],['sgkSube','SGK şubesi']].forEach(([f,n])=>{const e0=a[f]||'',y0=b[f]||'';if(e0!==y0){const g=/^\d{4}-\d\d-\d\d$/.test(e0||y0)?trTarih:z=>z;pk.push(`${n}: ${e0?g(e0):'boş'} → ${y0?g(y0):'boş'}`);}});
+    if((a.maasBurada!==false)!==(b.maasBurada!==false)){const m=b.maasBurada!==false?'maaşı artık bu şubede':'maaşı artık başka şubede';d.push(m);pk.push('Maaş: '+m);}
+    if(d.length)L.push({ad:a.ad||pid,t:d.join(', '),dd,pk});});
   const kul=new Set(Object.values(es));Object.keys(yeni).forEach(pid=>{if(kul.has(pid))return;const b=yeni[pid];if(sayi(b.gun)||sayi(b.hakGun)||Math.abs(sayi(b.fmSaat))>0.004)L.push({ad:b.ad||pid,t:'onayda yoktu'});});
   return L;}
 function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
@@ -1569,7 +1572,14 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
   if(V.kesin)h+=`<div class="banner ok"><b>Kesin kapandı</b>${V.D.kesinAd?' · '+esc(V.D.kesinAd):''}${V.D.kesinTarihi?' · '+tarihSaat(V.D.kesinTarihi):''}. Bu ayın rakamları kapanış anındaki halleriyle saklanır; çizelge, ödemeler, veri girişi, maaş ve ayar değişiklikleri bu ayı etkilemez.</div>`;
   else if(durum==='bolge_onay'&&V.kilitli)h+=`<div class="banner ok">Onaylandı${V.D.onaylayanAd?' · '+esc(V.D.onaylayanAd):''}. Muhasebe tarafı kilitli, ödemeler işlenebilir.</div>`;
   if(isIsveren()&&(V.kilitli||V.kesin)&&!S.pt.ozetHata&&!gunHataVar()&&Object.values(S.gunler).every(x=>x!==null)){const F=saklananFark(V);
-    if(F.length)h+=`<div class="banner bad"><b>Saklanan rakamlar güncel hesaptan farklı · ${F.length} kişi.</b> Onaydan sonra çizelge, personel bilgisi ya da program değişmiş; bu ayın saklanan rakamları değişmedi. Güncel hali için ${V.kesin?'kesin kapanışı ve ':''}kilidi açıp yeniden onaylayın.${F.slice(0,12).map(x=>`<div style="font-weight:400;margin-top:4px"><b>${esc(x.ad)}</b> — ${esc(x.t)}</div>`).join('')}${F.length>12?`<div style="font-weight:400;margin-top:4px">ve ${F.length-12} kişi daha</div>`:''}</div>`;}
+    if(F.length){const ET={gun:'Bordro günü',hakGun:'Çalışılan gün',rapor:'Rapor',ucretsiz:'Ücretsiz izin',yillik:'Yıllık izin',bayram:'Bayram',partGun:'Part gün',fmSaat:'Fazla mesai (saat)'};
+      const isaret=n=>(n>0?'+':n<0?'−':'')+fmt(Math.abs(n));
+      const blok=x=>{let b=`<div style="font-weight:400;margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.12)"><b>${esc(x.ad)}</b>`;
+        if(x.dd&&x.dd.length){b+=x.dd.map(z=>`<div style="margin-top:3px">• ${esc(ET[z.k]||z.n)}: onayda <b>${fmt(z.e)}</b>, şimdi <b>${fmt(z.y)}</b> (${isaret(z.y-z.e)})</div>`).join('');
+          b+=`<div style="margin-top:3px">${x.pk&&x.pk.length?`Neden: kişi bilgisi değişmiş — ${x.pk.map(esc).join('; ')}.`:'Neden: kişi bilgisi aynı; fark onaydan sonra bu kişinin çizelgesinde (ya da diğer şubelerdeki girişlerinde) yapılan değişiklikten geliyor. Çizelgede bu kişinin satırına bakın.'}</div>`;}
+        else b+=`<div style="margin-top:3px">${x.t==='onayda yoktu'?'Onay sırasında listede yoktu, şimdi hesapta var (onaydan sonra eklenmiş ya da çizelgede çalışması işlenmiş).':x.t==='güncel hesapta yok'?'Onayda vardı, şimdi hesapta yok (çıkarılmış ya da çizelgedeki günleri silinmiş).':esc(x.t)}</div>`;
+        return b+'</div>';};
+      h+=`<div class="banner bad"><b>Onaydan sonra ${F.length} kişinin rakamı değişmiş.</b> Muhasebeye giden ve saklanan rakamlar hâlâ onaydaki gibi duruyor; "şimdi" yazanlar bugünkü çizelge ve kişi bilgisiyle hesaplanan değerler. Güncel hali kullanmak için ${V.kesin?'kesin kapanışı ve ':''}kilidi açıp yeniden onaylayın; gerek yoksa bir şey yapmayın.${F.slice(0,12).map(blok).join('')}${F.length>12?`<div style="font-weight:400;margin-top:8px">ve ${F.length-12} kişi daha</div>`:''}</div>`;}}
   h+=`<div class="seg" style="margin:4px 0 12px" id="ptSeg"><button data-v="sol" class="${S.pt.gorunum==='sol'?'on':''}">Muhasebe</button><button data-v="sag" class="${S.pt.gorunum==='sag'?'on':''}">Ödemeler</button><button data-v="veri" class="${S.pt.gorunum==='veri'?'on':''}">Veri girişi</button></div>`;
   const cikisMi=s=>s.cikis&&s.cikis<=ayKaydir(ak,1)+'-00';
   const etiketler=x=>{const L=[];if(x.hes.esnaf)L.push('Esnaf kurye');else if(x.hes.pb)L.push('Paket başı');else if(x.hes.saat)L.push('Saatlik');else L.push(x.sol.sekil==='Part'?'Part':'Tam');if(x.hes.netYok)L.push('Net maaş yok');if(cikisMi(x.sol))L.push('Çıkış yapan');if(x.sol.maasBurada===false)L.push('Sadece FM');if(x.hes.kalan<-0.004)L.push('Kalan eksi');if(x.hes.otoBekle)L.push('Mesai onay bekliyor');if(x.sol.hakGun!=null&&x.sol.hakGun!==x.sol.gun)L.push(x.sol.sgkDisi?'SGK dışı gün':'Deneme');return L;};
