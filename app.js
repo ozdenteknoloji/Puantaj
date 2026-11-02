@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=189;
+const APP_SURUM=190;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1267,9 +1267,9 @@ function personelYapistirPanel(){const sid=S.subeId;
 // Kişinin çalıştığı şube ya da SGK şubesi değişince eski şube "görünür şubeler"e ve o şubenin ek personel listesine eklenir:
 // eski şubenin geçmiş haftaları, özetleri ve puantajı kişiyi kaybetmez (kişi yeni haftalara önerilmez).
 function eskiSubeYama(p0,body){const once=[p0.anaSube,p0.sgkSube].filter(x=>x&&x!==SGK_YOK);const sonra=new Set([body.anaSube??p0.anaSube,body.sgkSube??p0.sgkSube,...ekSubeleri({...p0,...body})].filter(x=>x&&x!==SGK_YOK));
-  const dusen=once.filter(x=>!sonra.has(x));if(!dusen.length)return{body,dusen};return{body:{...body,gorunurSubeler:[...new Set([...(p0.gorunurSubeler||[]),...dusen])]},dusen};}
-function personelYaz(pid,p0,body){const r=eskiSubeYama(p0||{},body);
-  sirayla('p'+pid,()=>{const b=writeBatch(db);b.set(doc(db,'personel',pid),r.body,{merge:true});r.dusen.forEach(x=>b.set(doc(db,'ekPersonel',x),{ids:{[pid]:true}},{merge:true}));arka(b.commit());});return r.body;}
+  const dusen=once.filter(x=>!sonra.has(x));if(!dusen.length)return{body,dusen};return{body:{...body,gorunurSubeler:[...new Set([...(body.gorunurSubeler||p0.gorunurSubeler||[]),...dusen])]},dusen};}
+function personelYaz(pid,p0,body,ekEkle=[]){const r=eskiSubeYama(p0||{},body);
+  sirayla('p'+pid,()=>{const b=writeBatch(db);b.set(doc(db,'personel',pid),r.body,{merge:true});[...new Set([...r.dusen,...ekEkle])].forEach(x=>b.set(doc(db,'ekPersonel',x),{ids:{[pid]:true}},{merge:true}));arka(b.commit());});return r.body;}
 // Silmeden önce: kişinin herhangi bir şubede çizelge kaydı var mı (varsa silinmez, çıkış tarihi girilir).
 async function personelKaydiVar(p){for(const sid of kisiSubeleri(p)){const q=await getDocs(collection(db,'subeler',sid,'haftalar'));
     if(q.docs.some(d=>{const x=d.data()||{};return (Array.isArray(x.kadro)&&x.kadro.includes(p.id))||Object.values((x.cells||{})[p.id]||{}).some(v=>v);}))return subeAdi(sid)||sid;}
@@ -1309,6 +1309,7 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
   const p=id?S.personel.find(x=>x.id===id):eskiK?{ad:eskiK.ad,grup:eskiK.grup||'K',gorev:eskiK.gorev||'',sekil:eskiK.sekil||'Tam',giris:isSube()?'':ymd(today()),cikis:'',anaSube:isSube()?S.subeId:(eskiK.anaSube||S.subeId),sgkSube:isSube()?'':(eskiK.sgkSube||'')}:{ad:'',grup:gr||'K',gorev:'',sekil:'Tam',giris:isSube()?'':ymd(today()),cikis:'',anaSube:S.subeId};if(!p)return;
   const yaz=personelYazabilir(p);const yazB=yaz&&!isSube();/* SGK şubesi, çalıştığı şube, şekil, SGK giriş, çıkış: sadece bölge müdürü ve işveren (şube müdürü görür) */const gv=id||eskiK?gorevTahmin(p):'';const sgk=p.sgkSube||'';const subeler=tumSubeler();
   const anaSec=(isIsveren()?S.subeIds:(S.me.subeler||[])).filter(x=>S.subeler[x]);
+  const secS0=id?[...new Set([p.anaSube,...ekSubeleri(p)].filter(Boolean))]:[];const calL=[...new Set([...(isIsveren()?S.subeIds:(S.me.subeler||[])),...secS0])].filter(Boolean).sort((a,b)=>String(subeAdi(a)).localeCompare(String(subeAdi(b)),'tr'));
   const gorevOpt=GOREVLER.filter(g=>id||!gr||g.grup===gr).map(g=>`<option value="${esc(g.ad)}" ${gv===g.ad?'selected':''}>${esc(g.ad)}</option>`).join('');
   const buAy=ayKey(today());const gayOpt=(()=>{const L=[];for(let k=BASLANGIC_AY;k<=buAy;k=ayKaydir(k,1))L.push(k);return L.reverse().map(k=>`<option value="${k}" ${k===buAy?'selected':''}>${esc(ayAdi(k))}</option>`).join('');})();
   openSheet(`<h2>${id?'Personeli düzenle':eskiK?'Yeniden işe giriş':'Yeni personel · '+GRUP[gr||'K']}</h2><div class="sub">${yaz?'İsim puantaj ve bordro eşleşmesinde kullanılır, bordrodaki gibi yazın.':'Bu kişi başka bir şubeye kayıtlı; bilgilerini o şube düzenler.'}</div>
@@ -1317,11 +1318,10 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
    <div id="pSekilW"><span class="lbl">Çalışma şekli</span><div class="seg" id="pSekil">${['Tam','Part'].map(x=>`<button data-v="${x}" class="${(p.sekil==='Part'?'Part':'Tam')===x?'on':''}" ${yazB?'':'disabled'}>${x}</button>`).join('')}</div></div>
    ${id&&yaz?`<label class="field" id="pGayW" hidden><span>Yeni görev / şekil hangi aydan geçerli</span><select id="pGay">${gayOpt}</select><small class="note" style="margin:4px 0 0;display:block">Önceki aylar eski görevle kalır. Yanlış girilmiş görevi düzeltiyorsanız ${esc(ayAdi(BASLANGIC_AY))} seçin.</small></label>`:''}
    <label class="field"><span>SGK şubesi (maaşı bu şubenin puantajında)</span><select id="pSgk" ${yazB?'':'disabled'}><option value="" ${!sgk?'selected':''}>Seçin</option><option value="${SGK_YOK}" ${sgk===SGK_YOK?'selected':''}>Boş (SGK şubesi yok)</option>${subeler.map(([sid,ad])=>`<option value="${esc(sid)}" ${sgk===sid?'selected':''}>${esc(ad)}</option>`).join('')}</select></label>
-   <label class="field"><span>Çalıştığı şube (çizelgesinde göründüğü)</span><select id="pAna" ${yazB?'':'disabled'}>${(anaSec.includes(p.anaSube||S.subeId)?anaSec:[p.anaSube||S.subeId,...anaSec]).map(x=>`<option value="${esc(x)}" ${(p.anaSube||S.subeId)===x?'selected':''}>${esc(subeAdi(x))}</option>`).join('')}</select></label>
+   ${id&&!isSube()?`<div class="field"><span>Çalıştığı şubeler</span><div class="ekbox"><span id="pSubeChips" class="ekbox"></span>${yaz&&ekYetkiVar()?'<button type="button" class="btn small" id="pSubeDeg">Değiştir</button>':''}</div><div id="pSubeL" hidden><div class="checks" style="margin-top:8px">${calL.map(x=>`<label class="check" style="margin:0"><input type="checkbox" value="${esc(x)}" ${secS0.includes(x)?'checked':''} ${yaz&&ekYetki(x)?'':'disabled'}> ${esc(subeAdi(x))}</label>`).join('')}</div></div><p class="note" style="margin:6px 0 0">Kişi işaretli şubelerin personel listesinde görünür; hangi şubede çalıştıysa o günün mesaisi o şubenin puantajına yazılır. Çizelgeye otomatik eklenmez, şube müdürü "+ ekle" ile ekler. Maaşın ödendiği şube aşağıdan seçilir.</p></div>`:`<label class="field"><span>Çalıştığı şube</span><select id="pAna" ${yazB?'':'disabled'}>${(anaSec.includes(p.anaSube||S.subeId)?anaSec:[p.anaSube||S.subeId,...anaSec]).map(x=>`<option value="${esc(x)}" ${(p.anaSube||S.subeId)===x?'selected':''}>${esc(subeAdi(x))}</option>`).join('')}</select></label>`}
    <div class="fgrid"><label class="field"><span>SGK giriş</span><input id="pGiris" type="date" value="${esc(p.giris||'')}" ${yazB?'':'disabled'}></label><label class="field"><span>Çıkış (boşsa çalışıyor)</span><input id="pCikis" type="date" value="${esc(p.cikis||'')}" ${yazB?'':'disabled'}></label></div>
    <label class="field"><span>${isSube()?'İlk çalıştığı gün (deneme başlangıcı)':"Deneme başlangıcı (SGK'dan önce çalıştığı ilk gün, boşsa SGK girişi)"}</span><input id="pBas" type="date" value="${esc(p.baslama||'')}" ${yaz?'':'disabled'}></label>
    ${!isSube()?`<div class="field"><span>Çizelge</span><label class="kchip ${p.cizelgesiz?'on':''}" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="pCizYok" ${p.cizelgesiz?'checked':''} ${yazB?'':'disabled'}> Çizelgeye girmez (bölge müdürü / yönetici)</label><p class="note" style="margin:4px 0 0">İşaretliyse haftalık çizelgede yer almaz, hafta kapanırken "listede yok" sayılıp ücretsiz izin yazılmaz. Muhasebede SGK şubesinde tam gün görünür; fazla mesai hesaplanmaz, maaşı net maaşa göre ödenir.</p></div>`:''}
-   ${id&&!isSube()?(()=>{const ek=ekSubeleri(p);return `<div class="field"><span>Diğer çalıştığı şubeler</span><div class="ekbox">${ek.length?ek.map(x=>`<span class="pch e"><b>${esc(subeAdi(x))}</b></span>`).join(''):'<span class="note" style="margin:0">Yok</span>'}${ekYetkiVar()?'<button class="btn small" id="pEk">Değiştir</button>':''}</div></div>`;})():''}
    ${id&&!isSube()?(()=>{const ak=ayKey(today());const ms=odemeSubesi(p,ak);const ids=[...new Set([p.anaSube||S.subeId,sgk!==SGK_YOK?sgk:'',...ekSubeleri(p),ms].filter(Boolean))];const gy=maasSubeGecmisYazi(p);
      return `<label class="field"><span>Maaşın ödendiği şube · ${ayAdi(ak<BASLANGIC_AY?BASLANGIC_AY:ak)} ayından itibaren</span><select id="pMs" ${yaz?'':'disabled'}>${ids.map(i=>`<option value="${esc(i)}" ${i===ms?'selected':''}>${esc(subeAdi(i))}</option>`).join('')}</select></label><p class="note" style="margin-top:-4px">Önceki aylar değişmez. Muhasebe SGK şubesinde kalır.${gy?' Geçmiş: '+esc(gy):''}</p>`;})():''}
    ${isSube()?`<p class="note" style="margin-top:-2px">SGK şubesi, SGK giriş, çıkış ve çalışma şeklini bölge müdürü ve işveren girer.</p>`:''}
@@ -1334,6 +1334,7 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
    const G=byId('pGorev');const gayW=byId('pGayW');const sekilSec=()=>{const g=gorevBul(G.value);return g&&g.sekil?g.sekil:sh.querySelector('#pSekil .on').dataset.v;};
    const gorevDeg=()=>{const g=gorevBul(G.value);return !!g&&(g.ad!==gv||sekilSec()!==(p.sekil||'Tam'));};
    const tog=()=>{const g=gorevBul(G.value);byId('pSekilW').hidden=!!(g&&g.sekil);if(gayW)gayW.hidden=!gorevDeg();};G.onchange=tog;tog();sh.querySelectorAll('#pSekil button').forEach(bt=>bt.addEventListener('click',tog));
+   {const chips=()=>{const c=byId('pSubeChips');if(!c)return;const sec=[...sh.querySelectorAll('#pSubeL input:checked')].map(i=>i.value);c.innerHTML=sec.length?sec.map(x=>`<span class="pch e"><b>${esc(subeAdi(x))}</b></span>`).join(' '):'<span class="note" style="margin:0">Seçili şube yok</span>';};chips();sh.querySelectorAll('#pSubeL input').forEach(i=>i.onchange=chips);const pd=byId('pSubeDeg');if(pd)pd.onclick=()=>{const L=byId('pSubeL');L.hidden=!L.hidden;};}
    const pcb=byId('pCB');if(pcb)pcb.onclick=()=>cikisBildirimKopyala(p);const py=byId('pYeni');if(py)py.onclick=()=>{closeSheet();personelPanel(null,null,{eski:p.id});};if(id)personelMaasGecmisi(p);
    const po=byId('pOut');if(po)po.onclick=()=>{byId('pCikis').value=ymd(today());po.hidden=true;};byId('pNo').onclick=closeSheet;const pe=byId('pEk');if(pe)pe.onclick=()=>ekSubePanel(p);const W=byId('pWarn');if(!yaz)return;
    byId('pAd').oninput=e=>{const el=e.target,a=el.selectionStart,b=el.selectionEnd;el.value=el.value.toLocaleUpperCase('tr-TR');try{el.setSelectionRange(a,b);}catch(_){}};
@@ -1352,17 +1353,30 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
      // Bir kişi sadece bir şubede SGK'lı olabilir: aynı isim ya da TC'li başka kayıt başka şubede SGK'lıysa kaydetme.
      if(!subeK&&sgkV!==SGK_YOK){const tcK=p.tc||'';const cak=sgkCakisma({...p,id,tc:tcK},sgkV,ad,byId('pGiris').value,byId('pCikis').value);
        if(cak){W.innerHTML=`<div class="confirm bad">${esc(sgkCakismaMesaj(cak))} Aynı dönemde başka şubede de çalışıyorsa SGK şubesini ${esc(subeAdi(cak.sgkSube))} bırakın, "Çalıştığı şube"yi değiştirin.</div>`;return;}}
-     const anaS=subeK?(id?(p.anaSube||S.subeId):S.subeId):(byId('pAna').value||S.subeId);const ayni=subePersoneli(anaS).find(x=>x.id!==id&&isimAnahtar(x.ad)===isimAnahtar(ad)&&!(x.cikis&&x.cikis<ymd(today())));if(ayni&&!W.dataset.ok){W.dataset.ok='1';W.innerHTML=isimsizMi(p)?`<div class="confirm bad">${esc(subeAdi(anaS))} listesinde ${esc(adBuyuk(ayni.ad))} zaten var. Bu isimsiz kayıt o kişiyse kaydetmeyin: çizelge günleri iki ayrı kayıtta kalır ve iki kez sayılır. Farklı kişiyse tekrar Kaydet'e basın.</div>`:`<div class="confirm">${esc(subeAdi(anaS))} listesinde bu isimde biri zaten var. Aynı kişiyse yeni kayıt açmayın. Farklı kişiyse tekrar Kaydet'e basın.</div>`;return;}
+     let anaB=null,secB=null,eklenenB=[],cikanB=[];
+     if(id&&!subeK&&byId('pSubeL')){const sec=[...sh.querySelectorAll('#pSubeL input:checked')].map(i=>i.value);
+       if(!sec.length){W.innerHTML='<div class="confirm">En az bir çalıştığı şube seçin.</div>';return;}
+       const eskiSet=[...new Set([p.anaSube,...ekSubeleri(p)].filter(Boolean))];
+       // Ana şube (kişi kaydının bağlı olduğu şube) kullanıcıya sorulmaz: mevcut ana şube işaretliyse o kalır; değilse SGK şubesi, o da yoksa ilk işaretli.
+       anaB=sec.includes(p.anaSube)?p.anaSube:(sec.includes(sgkV)?sgkV:sec[0]);secB=sec;
+       eklenenB=sec.filter(x=>!eskiSet.includes(x));cikanB=eskiSet.filter(x=>!sec.includes(x));
+       if([...eklenenB,...cikanB].some(x=>!ekYetki(x))){W.innerHTML='<div class="confirm bad">Sadece sorumlu olduğunuz şubeleri ekleyip çıkarabilirsiniz.</div>';return;}
+       if(anaB!==p.anaSube&&!ekYetki(anaB)){W.innerHTML='<div class="confirm bad">İşaretli şubeler arasında sorumlu olduğunuz bir şube de olmalı.</div>';return;}
+       const msEl0=byId('pMs');const msY=msEl0?msEl0.value:odemeSubesi(p,ayKey(today()));
+       if(cikanB.includes(msY)){W.innerHTML=`<div class="confirm bad">${esc(subeAdi(msY))} maaşın ödendiği şube. Önce aşağıdan maaşın ödendiği şubeyi değiştirin.</div>`;return;}}
+     const anaS=anaB||(subeK?(id?(p.anaSube||S.subeId):S.subeId):(byId('pAna').value||S.subeId));const ayni=subePersoneli(anaS).find(x=>x.id!==id&&isimAnahtar(x.ad)===isimAnahtar(ad)&&!(x.cikis&&x.cikis<ymd(today())));if(ayni&&!W.dataset.ok){W.dataset.ok='1';W.innerHTML=isimsizMi(p)?`<div class="confirm bad">${esc(subeAdi(anaS))} listesinde ${esc(adBuyuk(ayni.ad))} zaten var. Bu isimsiz kayıt o kişiyse kaydetmeyin: çizelge günleri iki ayrı kayıtta kalır ve iki kez sayılır. Farklı kişiyse tekrar Kaydet'e basın.</div>`:`<div class="confirm">${esc(subeAdi(anaS))} listesinde bu isimde biri zaten var. Aynı kişiyse yeni kayıt açmayın. Farklı kişiyse tekrar Kaydet'e basın.</div>`;return;}
      const bilgi={...((!id&&eskiB&&eskiB.o)||{})};
      const giris=subeK?(id?(p.giris||''):''):byId('pGiris').value,cikis=subeK?(id?(p.cikis||''):''):byId('pCikis').value;if(giris&&cikis&&cikis<giris){W.innerHTML='<div class="confirm">Çıkış tarihi girişten önce olamaz.</div>';return;}
      const sekil=g.sekil||(subeK?(id&&p.sekil&&p.sekil!=='Esnaf kurye'?p.sekil:'Tam'):sh.querySelector('#pSekil .on').dataset.v);const ana=anaS;
      const bas=byId('pBas').value;if(bas&&giris&&bas>giris){W.innerHTML='<div class="confirm">Deneme başlangıcı SGK girişinden sonra olamaz.</div>';return;}
      const body={ad,gorev:g.ad,grup:g.grup,sekil,giris,cikis,baslama:bas,sgkSube:sgkV,anaSube:ana,...bilgi};
      if(!subeK){const cy=byId('pCizYok');if(cy)body.cizelgesiz=cy.checked;}
+     if(secB){body.ekSubeler=secB.filter(x=>x!==anaB);body.gorunurSubeler=[...new Set([...(p.gorunurSubeler||[]),...kisiSubeleri(p),...secB])];}
      if(subeK&&id)['giris','cikis','sgkSube','anaSube'].forEach(k=>delete body[k]);// şube müdürü bu alanlara dokunmaz (kural da reddeder)
      if(id){if(gorevDeg()){const y=gorevGecmisYama(p,{gorev:g.ad,grup:g.grup,sekil},byId('pGay')?byId('pGay').value:buAy);if(y)Object.assign(body,y);else Object.assign(body,{gorev:p.gorev,grup:p.grup,sekil:p.sekil});}else if(p.gorevGecmis){Object.assign(body,{gorev:p.gorev,grup:p.grup,sekil:p.sekil});}}
      if(id&&!subeK){const akM=ayKey(today());const msEl=byId('pMs');const ms0=odemeSubesi(p,akM);const ym=msEl&&msEl.value!==ms0?maasGecmisYama(p,msEl.value,akM):maasGecmisYama(p,{anaSube:ana,sgkSube:sgkV},akM);if(ym)Object.assign(body,ym);}if(p.sira!=null)body.sira=p.sira;const pid=id||(slug(ad)+'-'+Math.random().toString(36).slice(2,6));
-     const p0={...p};const body2=personelYaz(pid,id?p0:{},body);if(!id)S.personel.push({id:pid,...body2});else Object.assign(p,body2);closeSheet();
+     const p0={...p};const body2=personelYaz(pid,id?p0:{},body,eklenenB);if(!id)S.personel.push({id:pid,...body2});else Object.assign(p,body2);closeSheet();
+     if(eklenenB.length||cikanB.length)toast([eklenenB.length?`${eklenenB.map(subeAdi).join(', ')} şubesine eklendi (çizelgeye şube müdürü ekler)`:'',cikanB.length?`${cikanB.map(subeAdi).join(', ')} şubesinden çıkarıldı; geçmiş haftaları duruyor`:''].filter(Boolean).join('. ')+'.');
      const ilkHafta=mondayOf(giris&&parse(giris)>today()?parse(giris):today());
      if(opt.sonra)opt.sonra(pid);
      const eskiAna=id?p0.anaSube:null,eskiSgk=id?p0.sgkSube:null;
