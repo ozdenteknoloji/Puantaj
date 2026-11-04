@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=193;
+const APP_SURUM=194;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -714,7 +714,7 @@ function renderTop(){const sb=S.subeId?sube():null;const ak=S.tab==='ay'?aktifAy
    <button class="icon-btn yardim-btn ${document.body.classList.contains('yardim-acik')?'on':''}" id="yardimBtn" aria-label="Açıklamalar" title="Açıklamaları göster / gizle">?</button>
    <button class="icon-btn" id="hesapBtn" aria-label="Hesap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button></div>`;
   byId('subeBtn').onclick=()=>{if(S.tab!=='puantaj'&&S.tab!=='yonetim'&&S.subeIds.length>1)subeSec();};byId('hesapBtn').onclick=hesapPanel;byId('yardimBtn').onclick=()=>{const a=!document.body.classList.contains('yardim-acik');document.body.classList.toggle('yardim-acik',a);tryLS('pm.yardim',a?'1':'0');renderTop();};}
-function render(){{const kb=document.getElementById('vBridge');if(kb&&document.activeElement===kb&&!(S.tab==='puantaj'&&S.pt&&S.pt.gorunum==='veri'))kb.blur();}if(!S.me||S.me.aktif!==true)return;if(S.eskiSurum)return eskiSurumEkrani();tryLS('pm.gor',JSON.stringify({d:ymd(today()),hafta:S.hafta,ay:S.ay,ayElle:!!S.ayElle,tk:S.tkGorunum,pt:S.pt.sube||null}));renderTabs();renderTop();
+function render(){{const vm=document.getElementById('vMenu');if(vm)vm.remove();const kb=document.getElementById('vBridge');if(kb&&document.activeElement===kb&&!(S.tab==='puantaj'&&S.pt&&S.pt.gorunum==='veri'))kb.blur();}if(!S.me||S.me.aktif!==true)return;if(S.eskiSurum)return eskiSurumEkrani();tryLS('pm.gor',JSON.stringify({d:ymd(today()),hafta:S.hafta,ay:S.ay,ayElle:!!S.ayElle,tk:S.tkGorunum,pt:S.pt.sube||null}));renderTabs();renderTop();
   if(S.ptGeri&&S.tab==='puantaj'&&puantajYetki()&&S.subeIds.includes(S.ptGeri)){const id=S.ptGeri;S.ptGeri=null;S.ay=aktifAy('puantaj');return puantajAc(id);}
   if(S.kuralHata)return view(`<div class="banner bad">Personel listesi okunamadı. Firebase kuralları güncel değil. ${isIsveren()?'Firestore → Rules sekmesine son firestore.rules dosyasını yapıştırıp Publish\'e basın.':'İşverene haber verin.'}</div>`);
   if(S.tab==='yonetim')return renderYonetim();
@@ -1981,6 +1981,22 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
   grid.ondblclick=e=>{const k=konum(e.target);if(k&&ptr==='mouse')duzenle(k.r,k.c);};
   grid.onclick=e=>{if(ptr==='mouse')return;const k=konum(e.target);if(k)duzenle(k.r,k.c);};
   grid.querySelectorAll('select[data-c]').forEach(el=>el.addEventListener('mousedown',e=>{if(ptr==='mouse'&&document.activeElement!==el)e.preventDefault();}));
+  // Sağ tık menüsü (bilgisayar): seçimin dışına tıklanırsa önce o hücre / satır seçilir.
+  const menuKapat=()=>{const m=byId('vMenu');if(m)m.remove();document.removeEventListener('pointerdown',menuDis,true);window.removeEventListener('scroll',menuKapat,true);window.removeEventListener('resize',menuKapat);};
+  const menuDis=e=>{const m=byId('vMenu');if(m&&!m.contains(e.target))menuKapat();};
+  grid.oncontextmenu=e=>{if(!pcMi())return;const rn=e.target.closest&&e.target.closest('td.rn[data-rn]');const k=rn?null:konum(e.target);if(!rn&&(!k||k.el.disabled))return;
+    if(duzenleniyor())return;e.preventDefault();menuKapat();
+    const A=aralik();const r=rn?+rn.dataset.rn:k.r;const icinde=A&&r>=A.r0&&r<=A.r1&&(rn?A.c0===0&&A.c1===4:k.c>=A.c0&&k.c<=A.c1);
+    if(!icinde){if(rn)satirSec(r,false);else sec(k.r,k.c);}
+    const B=aralik();if(!B)return;const sr=B.r1-B.r0+1,sc=B.c1-B.c0+1,tam=B.c0===0&&B.c1===4;const geriVar=(VGERI[geriKey]||[]).length>0;
+    const m=document.createElement('div');m.id='vMenu';m.className='vmenu';
+    m.innerHTML=`<div class="vmb">${tam?sr+' satır':(sr*sc)+' hücre'} seçili</div><button data-m="kop">Kopyala<span>Ctrl+C</span></button><button data-m="yap">Yapıştır<span>Ctrl+V</span></button><button data-m="bos">İçini boşalt<span>Delete</span></button><button data-m="sil" class="tehlike">${sr} satırı sil</button>${geriVar?'<button data-m="geri">Geri al<span>Ctrl+Z</span></button>':''}`;
+    document.body.appendChild(m);const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-w-4))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-h-4))+'px';
+    m.onclick=ev=>{const b=ev.target.closest('button[data-m]');if(!b)return;const t=b.dataset.m;menuKapat();const G=window.__vg;
+      if(t==='kop')G.kopyala();
+      else if(t==='yap'){if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(x=>{if(x)G.yapistir(x);},()=>toast('Tarayıcı panoyu okumaya izin vermedi; Ctrl+V ile yapıştırın.'));else toast('Ctrl+V ile yapıştırın.');}
+      else if(t==='bos')window.__vDoldur('',aralik());else if(t==='sil')satirSil(aralik());else if(t==='geri')geriAl();};
+    setTimeout(()=>{document.addEventListener('pointerdown',menuDis,true);window.addEventListener('scroll',menuKapat,true);window.addEventListener('resize',menuKapat);},0);};
   const rA=byId('vRnAll');if(rA)rA.onclick=()=>{const n=satirSay();if(!n)return;S.pt.vsel={r0:0,c0:0,r1:n-1,c1:4};selCiz();kopruOdak(true);};
   window.__vg={
     aktif:()=>S.tab==='puantaj'&&S.pt.gorunum==='veri'&&!byId('sheetRoot').innerHTML&&byId('vGrid')===grid&&grid.isConnected,
@@ -2010,7 +2026,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
       // Ctrl+C: tarayıcı kopyalama olayını göndermezse (odakta metin yoksa) 150 ms sonra panoya kendimiz yazarız.
       if(mod&&!e.shiftKey&&!e.altKey&&tus==='c'&&G.aralik()){son.bekle=true;setTimeout(()=>{if(son.bekle&&window.__vg&&window.__vg.aktif()){son.bekle=false;window.__vg.kopyala();}},150);return;}
       const A=G.aralik();if(!A)return;const P=S.pt.vsel;
-      if(e.key==='Escape'){S.pt.vsel=null;{const kb=byId('vBridge');if(kb)kb.value='';}byId('vGrid').querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const b=byId('vSecBar');if(b){b.style.display='none';b.innerHTML='';}return;}
+      if(e.key==='Escape'){{const vm=byId('vMenu');if(vm){vm.remove();return;}}S.pt.vsel=null;{const kb=byId('vBridge');if(kb)kb.value='';}byId('vGrid').querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const b=byId('vSecBar');if(b){b.style.display='none';b.innerHTML='';}return;}
       if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(A.c0===0&&A.c1===4)G.satirSil(A);else window.__vDoldur('',A);return;}
       if(e.key==='Enter'||e.key==='F2'){e.preventDefault();G.duzenle(P.r1,P.c1);return;}
       if(e.key==='Tab'){e.preventDefault();G.sec(P.r1,P.c1+(e.shiftKey?-1:1));return;}
