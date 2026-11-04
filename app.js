@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=191;
+const APP_SURUM=192;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -714,7 +714,7 @@ function renderTop(){const sb=S.subeId?sube():null;const ak=S.tab==='ay'?aktifAy
    <button class="icon-btn yardim-btn ${document.body.classList.contains('yardim-acik')?'on':''}" id="yardimBtn" aria-label="Açıklamalar" title="Açıklamaları göster / gizle">?</button>
    <button class="icon-btn" id="hesapBtn" aria-label="Hesap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button></div>`;
   byId('subeBtn').onclick=()=>{if(S.tab!=='puantaj'&&S.tab!=='yonetim'&&S.subeIds.length>1)subeSec();};byId('hesapBtn').onclick=hesapPanel;byId('yardimBtn').onclick=()=>{const a=!document.body.classList.contains('yardim-acik');document.body.classList.toggle('yardim-acik',a);tryLS('pm.yardim',a?'1':'0');renderTop();};}
-function render(){if(!S.me||S.me.aktif!==true)return;if(S.eskiSurum)return eskiSurumEkrani();tryLS('pm.gor',JSON.stringify({d:ymd(today()),hafta:S.hafta,ay:S.ay,ayElle:!!S.ayElle,tk:S.tkGorunum,pt:S.pt.sube||null}));renderTabs();renderTop();
+function render(){{const kb=document.getElementById('vBridge');if(kb&&document.activeElement===kb&&!(S.tab==='puantaj'&&S.pt&&S.pt.gorunum==='veri'))kb.blur();}if(!S.me||S.me.aktif!==true)return;if(S.eskiSurum)return eskiSurumEkrani();tryLS('pm.gor',JSON.stringify({d:ymd(today()),hafta:S.hafta,ay:S.ay,ayElle:!!S.ayElle,tk:S.tkGorunum,pt:S.pt.sube||null}));renderTabs();renderTop();
   if(S.ptGeri&&S.tab==='puantaj'&&puantajYetki()&&S.subeIds.includes(S.ptGeri)){const id=S.ptGeri;S.ptGeri=null;S.ay=aktifAy('puantaj');return puantajAc(id);}
   if(S.kuralHata)return view(`<div class="banner bad">Personel listesi okunamadı. Firebase kuralları güncel değil. ${isIsveren()?'Firestore → Rules sekmesine son firestore.rules dosyasını yapıştırıp Publish\'e basın.':'İşverene haber verin.'}</div>`);
   if(S.tab==='yonetim')return renderYonetim();
@@ -1792,22 +1792,24 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   S.pt._vvis=VIS.map(x=>x.i);S.pt._vkf={cols:VC,rows:tumR};
   let h=`${V.kesin?'':'<div class="actions" style="margin-top:0"><button class="btn grow" id="bordroB">Bordro PDF yükle</button></div>'}${hataSay?`<div class="banner bad">${hataSay} satırda veri uyuşmazlığı var (kırmızı). Bu satırlar hesaba katılmaz; ismi ya da türü düzeltin.</div>`:''}${uyariSay?`<div class="banner">${uyariSay} satırda uyarı var (sarı). Satırdaki yazıyı okuyun: rapor / izin aynı gün çizelgede ya da başka şubede de yazılmış (iki kez sayılır) veya kişinin o ay çalıştığı günden fazla rapor / izin girilmiş olabilir.</div>`:''}
    ${kfAktifMi('veri')?`<div class="kfbar">Filtre açık · ${VIS.length} / ${veri.length} satır gösteriliyor <button class="mini" id="kfHepsiV">Filtreleri kaldır</button></div>`:''}
-   <div class="tbl-wrap"><table class="pt vt vg2" id="vGrid" tabindex="0"><thead><tr>${VC.map(c=>kfBaslik('veri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>`;
+   ${V.kesin?'':'<div class="kfbar vsecbar" id="vSecBar" style="display:none"></div>'}
+   <div class="tbl-wrap"><table class="pt vt vg2" id="vGrid" tabindex="0"><thead><tr><th class="rn" id="vRnAll" title="Tüm satırları seç">#</th>${VC.map(c=>kfBaslik('veri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>`;
   // Geçen aydan devreden avans: hesapta zaten otomatik var; tablonun en üstünde salt okunur satır olarak görünür (elle yazılırsa iki kez sayılır).
   {const fA=kfAktifMi('veri');const vP=new Set(VIS.map(x=>x.v.pid).filter(Boolean));const sp=(t,st='')=>`<td class="bi${t}"${st?` style="${st}"`:''}><span style="display:block;padding:8px 6px;font-size:14px;font-weight:600;color:var(--mut)">`;
    V.satir.filter(x=>x.hes.devirAvans&&(!fA||vP.has(x.pid))).sort((a,b)=>String(adOf(a.pid)).localeCompare(String(adOf(b.pid)),'tr')).forEach(x=>{
-    h+=`<tr class="oto devir">${sp('')}${esc(trTarih(ak+'-01'))}</span></td>${sp(' l')}${esc(adBuyuk(adOf(x.pid)))}</span></td>${sp(' l')}Avans</span></td>${sp('','text-align:right')}${esc(fmt(x.hes.devirAvans))}</span></td>${sp(' l')}Geçen aydan devreden avans (${esc(ayAdi(ayKaydir(ak,-1)))})</span></td><td class="l dur"><span class="chip mut">otomatik · hesapta var, tekrar yazmayın</span></td><td></td></tr>`;});}
+    h+=`<tr class="oto devir"><td class="rn"></td>${sp('')}${esc(trTarih(ak+'-01'))}</span></td>${sp(' l')}${esc(adBuyuk(adOf(x.pid)))}</span></td>${sp(' l')}Avans</span></td>${sp('','text-align:right')}${esc(fmt(x.hes.devirAvans))}</span></td>${sp(' l')}Geçen aydan devreden avans (${esc(ayAdi(ayKaydir(ak,-1)))})</span></td><td class="l dur"><span class="chip mut">otomatik · hesapta var, tekrar yazmayın</span></td><td></td></tr>`;});}
   VIS.forEach((x,r)=>{const v=x.v;const k=x.k;const kil=V.kesin||(V.kilitli&&veriTur(v.tur)&&veriTur(v.tur).y==='sol'&&!k.gecersiz);
     h+=`<tr data-vid="${esc(v.id)}" data-r="${r}" class="${k.gecersiz?'hata':''}">
+     <td class="rn" data-rn="${r}" title="Satırı seç (sürükleyerek birden çok satır)">${r+1}</td>
      <td class="bi"><input data-c="0" readonly value="${esc(v.tarih?trTarih(v.tarih):'')}" placeholder="gg.aa.yyyy" ${kil?'disabled':''}></td>
      <td class="bi l"><input data-c="1" readonly list="vKisiL" value="${esc(v.ad!=null?v.ad:adBuyuk(adOf(v.pid)))}" autocomplete="off" ${kil?'disabled':''}></td>
      <td class="bi l"><select data-c="2" ${kil?'disabled':''}>${opt('',v.turYazi&&!veriTur(v.tur)?v.turYazi+' ?':'Seçin',!veriTur(v.tur))}${turlar.map(t=>opt(t.k,t.ad,v.tur===t.k)).join('')}${veriTur(v.tur)&&veriTur(v.tur).gizli?opt(v.tur,veriTur(v.tur).ad,true):''}</select></td>
      <td class="bi"><input data-c="3" readonly value="${esc(v.miktar==null||v.miktar===''?'':fmt(sayi(v.miktar)))}" inputmode="decimal" style="text-align:right" ${kil?'disabled':''}></td>
      <td class="bi l"><input data-c="4" readonly value="${esc(v.aciklama||'')}" ${kil?'disabled':''}></td>
      <td class="l dur">${k.gecersiz?`<span class="chip bad">${esc(k.hata)}</span>`:k.uyari?`<span class="chip warn">${esc(k.uyari)}</span>`:k.gonder?`<span class="chip ok">→ ${esc(k.gonderAd)} şubesine işlenir</span>`:''}</td><td>${kil?'':`<button class="mini" data-sil="${esc(v.id)}" title="Satırı sil">✕</button>`}</td></tr>`;});
-  if(!V.kesin)h+=`<tr class="ekle"><td colspan="7"><button class="mini ekleB" id="vSatir">+ Satır ekle</button><button class="mini ekleB" id="vSatir10">+ 10 satır</button></td></tr></tbody></table></div>
+  if(!V.kesin)h+=`<tr class="ekle"><td colspan="8"><button class="mini ekleB" id="vSatir">+ Satır ekle</button><button class="mini ekleB" id="vSatir10">+ 10 satır</button></td></tr></tbody></table></div>
    <datalist id="vKisiL">${kL.map(([id,ad])=>`<option value="${esc(adBuyuk(ad))}">`).join('')}</datalist>
-   <p class="note yardim">Çizelgedeki gibi: hücreye tıklayıp seçin, sürükleyerek ya da Shift ile aralık seçin; çift tıklayarak ya da yazmaya başlayarak düzenleyin. Ctrl+C / Ctrl+V / Delete seçili hücrelerde çalışır. Excel'deki satırları (TARİH · ŞUBE · AD SOYAD · VERİ TÜRÜ · MİKTAR · AÇIKLAMA) kopyalayıp seçili hücreye yapıştırın (seçim yoksa ilk boş satıra); satırlar kendiliğinden eklenir, şube sütunu atlanır. Yazdıklarınız anında kaydedilir. İsmi ya da türü tutmayan satırlar kırmızı görünür ve hesaba katılmaz.${V.kilitli?' Ay onaylandığı için gün türleri (rapor, izin, part gün) eklenemez; onaydan sonra eklenen kişiye de giriş yapılamaz. Düzeltme için kilidi açıp yeniden onaylayın.':''} Rapor, izin ve part gün hangi şubede girilirse girilsin kişinin SGK şubesinde ve maaş şubesinde sayılır.</p>`;
+   <p class="note yardim">Excel gibi: hücreye tıklayıp seçin, sürükleyerek ya da Shift ile aralık seçin; soldaki satır numarasına tıklayarak (sürükleyerek) bütün satırları seçin, numaraların üstündeki # ile hepsini seçin. Ctrl+C kopyalar, Ctrl+V yapıştırır, Ctrl+Z son toplu işlemi geri alır. Delete: hücre seçiliyse içini boşaltır, tam satır seçiliyse satırları siler (önce sorar). Dolu hücrelerin üzerine yapıştırırken de önce sorulur. Çift tıklayarak ya da yazmaya başlayarak düzenleyin. Excel'deki satırları (TARİH · ŞUBE · AD SOYAD · VERİ TÜRÜ · MİKTAR · AÇIKLAMA) kopyalayıp seçili hücreye yapıştırın (seçim yoksa ilk boş satıra); satırlar kendiliğinden eklenir, şube sütunu atlanır. Yazdıklarınız anında kaydedilir. İsmi ya da türü tutmayan satırlar kırmızı görünür ve hesaba katılmaz.${V.kilitli?' Ay onaylandığı için gün türleri (rapor, izin, part gün) eklenemez; onaydan sonra eklenen kişiye de giriş yapılamaz. Düzeltme için kilidi açıp yeniden onaylayın.':''} Rapor, izin ve part gün hangi şubede girilirse girilsin kişinin SGK şubesinde ve maaş şubesinde sayılır.</p>`;
   // Çizelgeden gelen fazla mesai / saat: açık ayda onaylanmadan hesaba girmez (sagHesap kapısı). Onay kutusu ve "Hepsini onayla".
   const onayAcik=otoKapi(V.ak,V.kilitli,V.kesin);const satirM=new Map(V.satir.map(x=>[x.pid,x]));
   const bekliyor=v=>{const x=satirM.get(v.pid);const b=x&&x.hes.otoBekle;return !!(b&&b[v.on]!=null);};const reddi=v=>{const x=satirM.get(v.pid);const r=x&&x.hes.otoRed;return !!(r&&r[v.on]);};
@@ -1861,11 +1863,24 @@ function sagYama(sag,kisiler){const o={};Object.entries(sag||{}).forEach(([pid,v
 function kalanTazele(V){if(V.kesin)return;const sid=S.subeId,ak=V.ak;const key=sid+'|'+ak;S.pt.kalanBak=S.pt.kalanBak||{};if(!V.kilitli||!puantajYetki()||S.pt.kalanBak[key]||kilitBaskasi()||!S.pt.prev||S.pt.sube!==sid)return;S.pt.kalanBak[key]=1;
   const sag=sagSonuclu(V);const fark=Object.keys(sag).filter(pid=>Math.abs(((((V.D.sag||{})[pid])||{}).kalan??0)-(sag[pid].kalan??0))>0.004);if(!fark.length)return;
   veriYaz(sid,ak,{deg:{},sil:[]},{sag:sagYama(sag,[])},{kilitsiz:true});}
-function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
+const VGERI={};const son={kopya:0};// şube|ay → toplu işlem öncesi listeler (Ctrl+Z)
+function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);const kisiM=new Map(kL);const adOf=pid=>kisiM.get(pid)||((S.personel.find(p=>p.id===pid)||{}).ad)||'?';
   const veri0=()=>((S.pt.doc&&S.pt.doc.veri)||[]);
   // Her değişiklik anında, sadece değişen satırlar yazılır.
-  const ayarla=(yeni,ciz)=>{if(kesinEngel()){S.pt.zorla=true;render();return;}if(kilitBaskasi()){toast(kilitMesaj());S.pt.zorla=true;render();return;}if(sid!==S.pt.sube||ak!==S.ay){S.pt.zorla=true;render();return;}
-    const eski=veri0();const fark=veriFark(eski,yeni);S.pt.doc={...(S.pt.doc||{}),veri:yeni};if(!Object.keys(fark.deg).length&&!fark.sil.length){if(ciz){S.pt.zorla=true;render();}return;}Promise.resolve(veriYaz(sid,ak,fark,kalanYama(sid,ak,yeni))).then(ok=>{if(ok!==false)bankaGonder(sid,ak,fark,eski);});if(ciz){S.pt.zorla=true;render();}};
+  const ayarla=(yeni,ciz)=>{if(kesinEngel()){S.pt.zorla=true;render();return false;}if(kilitBaskasi()){toast(kilitMesaj());S.pt.zorla=true;render();return false;}if(sid!==S.pt.sube||ak!==S.ay){S.pt.zorla=true;render();return false;}
+    const eski=veri0();const fark=veriFark(eski,yeni);S.pt.doc={...(S.pt.doc||{}),veri:yeni};if(!Object.keys(fark.deg).length&&!fark.sil.length){if(ciz){S.pt.zorla=true;render();}return false;}Promise.resolve(veriYaz(sid,ak,fark,kalanYama(sid,ak,yeni))).then(ok=>{if(ok!==false)bankaGonder(sid,ak,fark,eski);});if(ciz){S.pt.zorla=true;render();}return true;};
+  // Toplu işlemler (yapıştır, doldur, sil): işlemden önceki liste saklanır, Ctrl+Z ile geri alınır (şube + ay başına en çok 20).
+  const geriKey=sid+'|'+ak;
+  const ayarlaGeri=(yeni,ciz)=>{const eski=veri0().map(satirTemiz);const f=veriFark(eski,yeni);if(!Object.keys(f.deg).length&&!f.sil.length){return ayarla(yeni,ciz);}
+    const ok=ayarla(yeni,ciz);if(ok){const st=(VGERI[geriKey]=VGERI[geriKey]||[]);st.push(eski);if(st.length>20)st.shift();}return ok;};
+  const geriAl=()=>{const st=VGERI[geriKey]||[];if(!st.length){toast('Geri alınacak toplu işlem yok.');return;}
+    const snap=st.pop();const var_=new Set(veri0().map(v=>v.id));
+    // Silinmiş satır aynı kayıt numarasıyla geri yazılamaz (silinenler listesinde kalır): geri gelen satıra yeni numara verilir.
+    const L=snap.map(v=>var_.has(v.id)?v:{...v,id:Math.random().toString(36).slice(2,10)});
+    ayarla(L,true);toast('Son toplu işlem geri alındı.');};
+  // Onay penceresi
+  const onayAc=(baslik,metin,evet,fn)=>{openSheet(`<h2>${esc(baslik)}</h2><div class="confirm">${metin}</div><div class="row2"><button class="btn grow" id="vOVz">Vazgeç</button><button class="btn primary grow" id="vOEv">${esc(evet)}</button></div>`,()=>{byId('vOVz').onclick=()=>{closeSheet();kopruOdak(true);};byId('vOEv').onclick=()=>{closeSheet();fn();};});};
+  const alan=(v,c)=>c===0?String(v.tarih||''):c===1?String(v.ad!=null&&v.ad!==''?v.ad:(v.pid?adBuyuk(adOf(v.pid)):'')):c===2?String(v.tur||''):c===3?String(v.miktar==null?'':v.miktar):String(v.aciklama||'');
   const coz=v=>{const k=veriKontrol(v,kL,ak,V.kilitli,V);return{...v,pid:k.gecersiz&&k.hata!=='Veri türü seçin'&&k.hata!=='Muhasebe kilitli'&&k.hata!=='Başka ay'&&k.hata!=='Miktar yok'?'':k.pid,_k:k};};
   const temiz=v=>{const k=veriKontrol(v,kL,ak,V.kilitli,V);const o={...v,pid:k.gecersiz?'':k.pid,tur:v.tur||''};if(k.gonder&&!k.gecersiz)o.gonder=k.gonder;else delete o.gonder;return o;};
   // Güncellemeden önce girilmiş "Bankaya yatan" satırları (maaşı başka şubede): ekran açılınca bir kez işaretlenir ve maaş şubesine gönderilir.
@@ -1880,18 +1895,37 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
   // Hücreler çizelgedeki gibi: tıkla seç, sürükle / Shift ile aralık, çift tıkla (ya da Enter / F2 / yazmaya başla) düzenle.
   // Ctrl+C / Ctrl+V / Delete seçili hücrelerde çalışır; yapıştırma seçili hücreden başlar, seçim yoksa ilk boş satıra.
   const hucreEl=(r,c)=>grid.querySelector(`tr[data-r="${r}"] [data-c="${c}"]`);
-  const aralik=()=>{const A=S.pt.vsel;if(!A)return null;return{r0:Math.min(A.r0,A.r1),r1:Math.max(A.r0,A.r1),c0:Math.min(A.c0,A.c1),c1:Math.max(A.c0,A.c1)};};
+  const aralik=()=>{const A=S.pt.vsel;if(!A)return null;const n=satirSay();if(!n)return null;const k=x=>Math.max(0,Math.min(n-1,x));return{r0:k(Math.min(A.r0,A.r1)),r1:k(Math.max(A.r0,A.r1)),c0:Math.min(A.c0,A.c1),c1:Math.max(A.c0,A.c1)};};
   const satirSay=()=>grid.querySelectorAll('tr[data-vid]').length;
-  const selCiz=()=>{grid.querySelectorAll('td.vsel,td.vakt').forEach(t=>t.classList.remove('vsel','vakt'));const A=aralik();if(!A)return;
-    for(let r=A.r0;r<=A.r1;r++)for(let c=A.c0;c<=A.c1;c++){const e=hucreEl(r,c);const t=e&&e.closest('td');if(t)t.classList.add('vsel');}
-    const a=hucreEl(S.pt.vsel.r1,S.pt.vsel.c1);if(a&&a.closest('td'))a.closest('td').classList.add('vakt');};
+  // Seçili alanın Excel'e yapışacak metni (sekmeyle ayrılmış). Panoya bu metin gider.
+  const tsvMetin=()=>{const A=aralik();if(!A)return null;const R=[];for(let r=A.r0;r<=A.r1;r++){const row=[];for(let c=A.c0;c<=A.c1;c++){const x=hucreEl(r,c);row.push(x?(x.tagName==='SELECT'?(x.value?x.selectedOptions[0].text:''):x.value):'');}R.push(row.join('\t'));}return R.join('\n');};
+  // Tarayıcı, odakta seçili metin yokken Ctrl+C / Ctrl+V'yi tabloya iletmez (sadece tek hücrenin yazısı kopyalanır). Bu yüzden seçili alanın metni
+  // görünmeyen bir kutuya konup seçilir ve odak ona verilir: Ctrl+C aralığın tamamını kopyalar, Ctrl+V yapıştırmayı yakalar.
+  let kopru=byId('vBridge');if(!kopru){kopru=document.createElement('textarea');kopru.id='vBridge';kopru.tabIndex=-1;kopru.setAttribute('aria-hidden','true');kopru.setAttribute('autocomplete','off');kopru.setAttribute('spellcheck','false');kopru.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(kopru);}
+  const pcMi=()=>!S.pt.vDokunmatik&&!!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches);
+  const kopruOdak=zorla=>{if(!pcMi()||duzenleniyor())return;const x=tsvMetin();if(x==null)return;const a=document.activeElement;
+    if(!zorla&&a&&a!==document.body&&a!==grid&&a!==kopru)return;kopru.value=x;try{kopru.focus({preventScroll:true});kopru.select();}catch(_){}};
+  const secBar=()=>{const bar=byId('vSecBar');if(!bar)return;const A=aralik();if(!A){bar.style.display='none';bar.innerHTML='';kopru.value='';return;}
+    const sr=A.r1-A.r0+1,sc=A.c1-A.c0+1,tam=A.c0===0&&A.c1===4;bar.style.display='flex';
+    bar.innerHTML=`<span>${tam?sr+' satır seçili':(sr*sc)+' hücre seçili'}</span><button class="mini" id="vKop">Kopyala</button><button class="mini" id="vTem">İçini boşalt</button><button class="mini tehlike" id="vSat">${sr} satırı sil</button><button class="mini" id="vKapa">Seçimi kaldır</button>`;
+    byId('vKop').onclick=()=>window.__vg.kopyala();byId('vTem').onclick=()=>window.__vDoldur('',aralik());byId('vSat').onclick=()=>satirSil(aralik());byId('vKapa').onclick=()=>{S.pt.vsel=null;selCiz();};};
+  const selCiz=()=>{grid.querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const A=aralik();secBar();if(!A)return;
+    for(let r=A.r0;r<=A.r1;r++){for(let c=A.c0;c<=A.c1;c++){const e=hucreEl(r,c);const t=e&&e.closest('td');if(t)t.classList.add('vsel');}const rn=grid.querySelector(`tr[data-r="${r}"] td.rn`);if(rn)rn.classList.add('rsel');}
+    const a=hucreEl(S.pt.vsel.r1,S.pt.vsel.c1);if(a&&a.closest('td'))a.closest('td').classList.add('vakt');kopruOdak(false);};
   const sec=(r,c,uzat)=>{const n=satirSay();if(!n)return;r=Math.max(0,Math.min(n-1,r));c=Math.max(0,Math.min(4,c));
     S.pt.vsel=uzat&&S.pt.vsel?{...S.pt.vsel,r1:r,c1:c}:{r0:r,c0:c,r1:r,c1:c};selCiz();const e=hucreEl(r,c);if(e&&e.scrollIntoView)e.scrollIntoView({block:'nearest',inline:'nearest'});};
+  // Satır numarasına tıklayınca bütün satır (5 sütun) seçilir; sürükleyince ya da Shift ile birden çok satır.
+  const satirSec=(r,uzat)=>{const n=satirSay();if(!n)return;r=Math.max(0,Math.min(n-1,r));S.pt.vsel=uzat&&S.pt.vsel?{r0:S.pt.vsel.r0,c0:0,r1:r,c1:4}:{r0:r,c0:0,r1:r,c1:4};selCiz();kopruOdak(true);};
+  // Seçili satırları siler (kilitli / pasif hücreli satırlar atlanır). Onay sorulur, Ctrl+Z ile geri alınır.
+  const satirSil=A=>{if(!A)return;const VI=vis();const ids=[];let dolu=0;for(let p=A.r0;p<=A.r1;p++){const el=hucreEl(p,0);if(!el||el.disabled)continue;const v=veri0()[VI[p]];if(!v)continue;ids.push(v.id);if(!veriKontrol(v,kL,ak,V.kilitli,V).bos)dolu++;}
+    if(!ids.length){toast('Seçili satırlar silinemez (kilitli ya da boş).');return;}
+    const sil=()=>{const k=new Set(ids);S.pt.vsel=null;ayarlaGeri(veri0().filter(v=>!k.has(v.id)),true);toast(`${ids.length} satır silindi. Geri almak için Ctrl+Z.`);};
+    if(!dolu)sil();else onayAc('Satırlar silinsin mi?',`<b>${ids.length} satır</b> silinecek${dolu<ids.length?` (${dolu} tanesi dolu)`:''}.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, sil',sil);};
   const duzenleniyor=()=>{const a=document.activeElement;return !!(a&&grid.contains(a)&&a.matches('[data-c]')&&(a.tagName==='SELECT'||!a.readOnly));};
   const duzenle=(r,c,ilk)=>{const el=hucreEl(r,c);if(!el||el.disabled)return;sec(r,c);
     if(el.tagName==='SELECT'){el.focus();try{el.showPicker&&el.showPicker();}catch(_){}return;}
     el.readOnly=false;el.focus();if(ilk!=null){el.value=c===1?ilk.toLocaleUpperCase('tr-TR'):ilk;try{el.setSelectionRange(el.value.length,el.value.length);}catch(_){}}else{try{el.select();}catch(_){}}};
-  const bitir=el=>{if(el.tagName!=='SELECT')el.readOnly=true;grid.focus({preventScroll:true});};
+  const bitir=el=>{if(el.tagName!=='SELECT')el.readOnly=true;grid.focus({preventScroll:true});kopruOdak(true);};
   grid.querySelectorAll('tr[data-vid]').forEach(tr=>{const id=tr.dataset.vid;
     tr.querySelectorAll('[data-c]').forEach(el=>{const c=+el.dataset.c;
       if(c===1)el.oninput=()=>{const a=el.selectionStart,b=el.selectionEnd;el.value=el.value.toLocaleUpperCase('tr-TR');try{el.setSelectionRange(a,b);}catch(_){}};
@@ -1910,8 +1944,16 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     return M.map(r=>r.filter((x,j)=>!at.includes(j)));};
   const vis=()=>S.pt._vvis||veri0().map((v,i)=>i);
   const yapistir=(t,r0,c0)=>{let M=t.replace(/\r/g,'').split('\n');while(M.length&&!M[M.length-1].trim())M.pop();M=sutunlar(M.map(x=>x.split('\t')));if(!M.length)return;
-    const L=veri0().slice();const VI=vis();const dok=[];M.forEach((row,i)=>{const pos=r0+i;let r=pos<VI.length?VI[pos]:null;if(r==null){L.push(yeniSatir());r=L.length-1;}let v={...L[r]};row.forEach((val,j)=>{const c=c0+j;if(c<=4)v=hucreYaz(v,c,val);});L[r]=v;dok.push(r);});
-    const hata=dok.filter(r=>veriKontrol(L[r],kL,ak,V.kilitli,V).gecersiz).length;ayarla(L,true);toast(`${M.length} satır yapıştırıldı${hata?`, ${hata} satırda uyuşmazlık var (kırmızı)`:''}.`);};
+    const L=veri0().slice();const VI=vis();const dok=[];let yeniSay=0,degSay=0,atla=0;const degSatir=new Set();
+    M.forEach((row,i)=>{const pos=r0+i;let r=pos<VI.length?VI[pos]:null;
+      if(r==null){L.push(yeniSatir());r=L.length-1;yeniSay++;}
+      else{const el=hucreEl(pos,Math.min(c0,4));if(el&&el.disabled){atla++;return;}}
+      const once=L[r];let v={...once};row.forEach((val,j)=>{const c=c0+j;if(c<=4)v=hucreYaz(v,c,val);});
+      for(let c=c0;c<Math.min(5,c0+row.length);c++){if(alan(once,c)!==''&&alan(once,c)!==alan(v,c)){degSay++;degSatir.add(r);}}
+      L[r]=v;dok.push(r);});
+    const hucreSay=M.reduce((a,r)=>a+r.length,0);
+    const uygula=()=>{const hata=dok.filter(r=>veriKontrol(L[r],kL,ak,V.kilitli,V).gecersiz).length;ayarlaGeri(L,true);toast(`${dok.length} satır yapıştırıldı${yeniSay?` (${yeniSay} yeni satır)`:''}${atla?`, ${atla} kilitli satır atlandı`:''}${hata?`, ${hata} satırda uyuşmazlık var (kırmızı)`:''}. Geri almak için Ctrl+Z.`);};
+    if(degSay&&hucreSay>1)onayAc('Yapıştırılsın mı?',`<b>${degSatir.size} satırdaki ${degSay} dolu hücrenin</b> üzerine yazılacak${yeniSay?`, ${yeniSay} yeni satır eklenecek`:''}.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, yapıştır',uygula);else uygula();};
   byId('vSatir').onclick=()=>{S.pt.odak={c:1};ayarla([...veri0(),yeniSatir()],true);};
   byId('vSatir10').onclick=()=>{const L=veri0().slice();for(let i=0;i<10;i++)L.push(yeniSatir());S.pt.odak={c:1,ilkBos:true};ayarla(L,true);};
   const ob=byId('vOto');if(ob)ob.onclick=()=>{S.pt.otoAcik=!(S.pt.otoAcik??(S.pt._otoBek>0));render();};
@@ -1927,31 +1969,50 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
   // Fare: tıkla seç, sürükle / Shift+tıkla aralık, çift tıkla düzenle. Dokunmatik ekranda dokununca düzenler.
   let surukle=false,ptr='mouse';
   const konum=t=>{const td=t.closest&&t.closest('td.bi');const el=td&&td.querySelector('[data-c]');const tr=td&&td.closest('tr[data-r]');return el&&tr?{r:+tr.dataset.r,c:+el.dataset.c,el}:null;};
-  grid.onpointerdown=e=>{ptr=e.pointerType||'mouse';const k=konum(e.target);if(!k||k.el.disabled)return;if(ptr!=='mouse')return;if(e.button!==0)return;
+  const satirKonum=t=>{const tr=t.closest&&t.closest('tr[data-r]');return tr?+tr.dataset.r:null;};
+  grid.onpointerdown=e=>{ptr=e.pointerType||'mouse';if(ptr!=='mouse')S.pt.vDokunmatik=true;
+    if(ptr==='mouse'&&e.button===0&&e.target.closest&&e.target.closest('td.rn[data-rn]')){e.preventDefault();const a=document.activeElement;if(a&&grid.contains(a)&&a!==grid)a.blur();grid.focus({preventScroll:true});satirSec(+e.target.closest('td.rn').dataset.rn,e.shiftKey);surukle='satir';return;}
+    const k=konum(e.target);if(!k||k.el.disabled)return;if(ptr!=='mouse')return;if(e.button!==0)return;
     if(document.activeElement===k.el&&duzenleniyor())return;// düzenlenen hücrenin içinde imleç / metin seçimi serbest
     e.preventDefault();const a=document.activeElement;if(a&&grid.contains(a)&&a!==grid)a.blur();grid.focus({preventScroll:true});sec(k.r,k.c,e.shiftKey);surukle=true;};
-  grid.onpointermove=e=>{if(!surukle||ptr!=='mouse'||!(e.buttons&1))return;const t=document.elementFromPoint(e.clientX,e.clientY);const k=t&&konum(t);if(k&&S.pt.vsel&&(k.r!==S.pt.vsel.r1||k.c!==S.pt.vsel.c1))sec(k.r,k.c,true);};
+  grid.onpointermove=e=>{if(!surukle||ptr!=='mouse'||!(e.buttons&1))return;const t=document.elementFromPoint(e.clientX,e.clientY);
+    if(surukle==='satir'){const r=t&&satirKonum(t);if(r!=null&&S.pt.vsel&&r!==S.pt.vsel.r1)satirSec(r,true);return;}
+    const k=t&&konum(t);if(k&&S.pt.vsel&&(k.r!==S.pt.vsel.r1||k.c!==S.pt.vsel.c1))sec(k.r,k.c,true);};
   grid.onpointerup=grid.onpointercancel=()=>{surukle=false;};
   grid.ondblclick=e=>{const k=konum(e.target);if(k&&ptr==='mouse')duzenle(k.r,k.c);};
   grid.onclick=e=>{if(ptr==='mouse')return;const k=konum(e.target);if(k)duzenle(k.r,k.c);};
   grid.querySelectorAll('select[data-c]').forEach(el=>el.addEventListener('mousedown',e=>{if(ptr==='mouse'&&document.activeElement!==el)e.preventDefault();}));
+  const rA=byId('vRnAll');if(rA)rA.onclick=()=>{const n=satirSay();if(!n)return;S.pt.vsel={r0:0,c0:0,r1:n-1,c1:4};selCiz();kopruOdak(true);};
   window.__vg={
     aktif:()=>S.tab==='puantaj'&&S.pt.gorunum==='veri'&&!byId('sheetRoot').innerHTML&&byId('vGrid')===grid&&grid.isConnected,
     duzenleniyor,aralik,sec,duzenle,
-    tsv:()=>{const A=aralik();if(!A)return null;const R=[];for(let r=A.r0;r<=A.r1;r++){const row=[];for(let c=A.c0;c<=A.c1;c++){const x=hucreEl(r,c);row.push(x?(x.tagName==='SELECT'?(x.value?x.selectedOptions[0].text:''):x.value):'');}R.push(row.join('\t'));}return{t:R.join('\n'),n:(A.r1-A.r0+1)*(A.c1-A.c0+1)};},
+    tsv:()=>{const A=aralik();const t=tsvMetin();if(t==null)return null;return{t,n:(A.r1-A.r0+1)*(A.c1-A.c0+1),satir:A.c0===0&&A.c1===4?A.r1-A.r0+1:0};},
+    kopyaMesaj:x=>x.satir?`${x.satir} satır kopyalandı.`:`${x.n} hücre kopyalandı.`,
+    kopyala:()=>{const x=window.__vg.tsv();if(!x)return;const bitti=()=>{son.kopya=Date.now();toast(window.__vg.kopyaMesaj(x));};
+      const yedek=()=>{kopru.value=x.t;try{kopru.focus({preventScroll:true});kopru.select();if(document.execCommand('copy'))bitti();else toast('Kopyalanamadı: tarayıcı engelledi.');}catch(_){toast('Kopyalanamadı: tarayıcı engelledi.');}};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x.t).then(bitti,yedek);}else yedek();},
+    geriAl,satirSil,hepsi:()=>{const n=satirSay();if(!n)return;S.pt.vsel={r0:0,c0:0,r1:n-1,c1:4};selCiz();kopruOdak(true);},
     yapistir:t=>{const A=aralik();const tek=!/[\t\n]/.test(t.replace(/[\r\n]+$/,''));
       if(A){if(tek&&(A.r1>A.r0||A.c1>A.c0)){window.__vDoldur(t.replace(/[\r\n]+$/,''),A);return;}yapistir(t,A.r0,A.c0);return;}
       if(tek)return;const L=veri0();const VI=vis();const bosP=VI.findIndex(i=>L[i]&&veriKontrol(L[i],kL,ak,V.kilitli,V).bos);yapistir(t,bosP>=0?bosP:VI.length,0);}};
-  window.__vDoldur=(val,A)=>{const L=veri0().slice();const VI=vis();let n=0;for(let p=A.r0;p<=A.r1;p++){const r=VI[p];if(r==null||!L[r])continue;let v={...L[r]};for(let c=A.c0;c<=A.c1;c++){if(c>4)continue;v=hucreYaz(v,c,val);n++;}L[r]=v;}
-    ayarla(L,true);toast(val===''?`${n} hücre temizlendi.`:`${n} hücreye yapıştırıldı.`);};
+  window.__vDoldur=(val,A)=>{if(!A)return;const L=veri0().slice();const VI=vis();let n=0,deg=0;const dg=new Set();
+    for(let p=A.r0;p<=A.r1;p++){const r=VI[p];if(r==null||!L[r])continue;const once=L[r];let v={...once};for(let c=A.c0;c<=A.c1;c++){if(c>4)continue;const el=hucreEl(p,c);if(el&&el.disabled)continue;v=hucreYaz(v,c,val);n++;if(alan(once,c)!==''&&alan(once,c)!==alan(v,c)){deg++;dg.add(r);}}L[r]=v;}
+    const uygula=()=>{ayarlaGeri(L,true);toast(val===''?`${n} hücre boşaltıldı. Geri almak için Ctrl+Z.`:`${n} hücreye yapıştırıldı. Geri almak için Ctrl+Z.`);};
+    if(val!==''&&deg>1)onayAc('Yapıştırılsın mı?',`<b>${dg.size} satırdaki ${deg} dolu hücrenin</b> üzerine aynı değer yazılacak.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, yapıştır',uygula);else uygula();};
   if(!veriYapistirBagli){veriYapistirBagli=true;
-    document.addEventListener('copy',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const x=G.tsv();if(!x)return;e.clipboardData.setData('text/plain',x.t);e.preventDefault();toast(`${x.n} hücre kopyalandı.`);});
-    document.addEventListener('paste',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&!(byId('vGrid')&&byId('vGrid').contains(a)))return;
+    const klavyeUygun=a=>!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.id!=='vBridge'&&!(byId('vGrid')&&byId('vGrid').contains(a)));
+    document.addEventListener('copy',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const x=G.tsv();if(!x)return;e.clipboardData.setData('text/plain',x.t);e.preventDefault();son.kopya=Date.now();toast(G.kopyaMesaj(x));});
+    document.addEventListener('paste',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;if(!klavyeUygun(document.activeElement))return;
       const t=(e.clipboardData||window.clipboardData).getData('text');if(!t)return;e.preventDefault();G.yapistir(t);});
-    document.addEventListener('keydown',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&!(byId('vGrid')&&byId('vGrid').contains(a)))return;
+    document.addEventListener('keydown',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;if(!klavyeUygun(document.activeElement))return;
+      const mod=e.ctrlKey||e.metaKey;const tus=(e.key||'').toLowerCase();
+      if(mod&&!e.shiftKey&&!e.altKey&&tus==='z'){e.preventDefault();G.geriAl();return;}
+      if(mod&&!e.altKey&&tus==='a'){e.preventDefault();G.hepsi();return;}
+      // Ctrl+C: tarayıcı kopyalama olayını göndermezse (odakta metin yoksa) 150 ms sonra panoya kendimiz yazarız.
+      if(mod&&!e.shiftKey&&!e.altKey&&tus==='c'&&G.aralik()){const t0=Date.now();setTimeout(()=>{if(son.kopya<t0&&window.__vg&&window.__vg.aktif())window.__vg.kopyala();},150);return;}
       const A=G.aralik();if(!A)return;const P=S.pt.vsel;
-      if(e.key==='Escape'){S.pt.vsel=null;G.sec&&byId('vGrid').querySelectorAll('td.vsel,td.vakt').forEach(t=>t.classList.remove('vsel','vakt'));return;}
-      if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();window.__vDoldur('',A);return;}
+      if(e.key==='Escape'){S.pt.vsel=null;{const kb=byId('vBridge');if(kb)kb.value='';}byId('vGrid').querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const b=byId('vSecBar');if(b){b.style.display='none';b.innerHTML='';}return;}
+      if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(A.c0===0&&A.c1===4)G.satirSil(A);else window.__vDoldur('',A);return;}
       if(e.key==='Enter'||e.key==='F2'){e.preventDefault();G.duzenle(P.r1,P.c1);return;}
       if(e.key==='Tab'){e.preventDefault();G.sec(P.r1,P.c1+(e.shiftKey?-1:1));return;}
       const yon={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(yon){e.preventDefault();G.sec(P.r1+yon[0],P.c1+yon[1],e.shiftKey);return;}
