@@ -1863,7 +1863,7 @@ function sagYama(sag,kisiler){const o={};Object.entries(sag||{}).forEach(([pid,v
 function kalanTazele(V){if(V.kesin)return;const sid=S.subeId,ak=V.ak;const key=sid+'|'+ak;S.pt.kalanBak=S.pt.kalanBak||{};if(!V.kilitli||!puantajYetki()||S.pt.kalanBak[key]||kilitBaskasi()||!S.pt.prev||S.pt.sube!==sid)return;S.pt.kalanBak[key]=1;
   const sag=sagSonuclu(V);const fark=Object.keys(sag).filter(pid=>Math.abs(((((V.D.sag||{})[pid])||{}).kalan??0)-(sag[pid].kalan??0))>0.004);if(!fark.length)return;
   veriYaz(sid,ak,{deg:{},sil:[]},{sag:sagYama(sag,[])},{kilitsiz:true});}
-const VGERI={};const son={kopya:0};// şube|ay → toplu işlem öncesi listeler (Ctrl+Z)
+const VGERI={};const son={bekle:false};// şube|ay → toplu işlem öncesi listeler (Ctrl+Z)
 function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);const kisiM=new Map(kL);const adOf=pid=>kisiM.get(pid)||((S.personel.find(p=>p.id===pid)||{}).ad)||'?';
   const veri0=()=>((S.pt.doc&&S.pt.doc.veri)||[]);
   // Her değişiklik anında, sadece değişen satırlar yazılır.
@@ -1988,7 +1988,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     duzenleniyor,aralik,sec,duzenle,
     tsv:()=>{const A=aralik();const t=tsvMetin();if(t==null)return null;return{t,n:(A.r1-A.r0+1)*(A.c1-A.c0+1),satir:A.c0===0&&A.c1===4?A.r1-A.r0+1:0};},
     kopyaMesaj:x=>x.satir?`${x.satir} satır kopyalandı.`:`${x.n} hücre kopyalandı.`,
-    kopyala:()=>{const x=window.__vg.tsv();if(!x)return;const bitti=()=>{son.kopya=Date.now();toast(window.__vg.kopyaMesaj(x));};
+    kopyala:()=>{const x=window.__vg.tsv();if(!x)return;const bitti=()=>{son.bekle=false;toast(window.__vg.kopyaMesaj(x));};
       const yedek=()=>{kopru.value=x.t;try{kopru.focus({preventScroll:true});kopru.select();if(document.execCommand('copy'))bitti();else toast('Kopyalanamadı: tarayıcı engelledi.');}catch(_){toast('Kopyalanamadı: tarayıcı engelledi.');}};
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x.t).then(bitti,yedek);}else yedek();},
     geriAl,satirSil,hepsi:()=>{const n=satirSay();if(!n)return;S.pt.vsel={r0:0,c0:0,r1:n-1,c1:4};selCiz();kopruOdak(true);},
@@ -2001,7 +2001,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     if(val!==''&&deg>1)onayAc('Yapıştırılsın mı?',`<b>${dg.size} satırdaki ${deg} dolu hücrenin</b> üzerine aynı değer yazılacak.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, yapıştır',uygula);else uygula();};
   if(!veriYapistirBagli){veriYapistirBagli=true;
     const klavyeUygun=a=>!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.id!=='vBridge'&&!(byId('vGrid')&&byId('vGrid').contains(a)));
-    document.addEventListener('copy',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const x=G.tsv();if(!x)return;e.clipboardData.setData('text/plain',x.t);e.preventDefault();son.kopya=Date.now();toast(G.kopyaMesaj(x));});
+    document.addEventListener('copy',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;const x=G.tsv();if(!x)return;e.clipboardData.setData('text/plain',x.t);e.preventDefault();son.bekle=false;toast(G.kopyaMesaj(x));});
     document.addEventListener('paste',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;if(!klavyeUygun(document.activeElement))return;
       const t=(e.clipboardData||window.clipboardData).getData('text');if(!t)return;e.preventDefault();G.yapistir(t);});
     document.addEventListener('keydown',e=>{const G=window.__vg;if(!G||!G.aktif()||G.duzenleniyor())return;if(!klavyeUygun(document.activeElement))return;
@@ -2009,7 +2009,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
       if(mod&&!e.shiftKey&&!e.altKey&&tus==='z'){e.preventDefault();G.geriAl();return;}
       if(mod&&!e.altKey&&tus==='a'){e.preventDefault();G.hepsi();return;}
       // Ctrl+C: tarayıcı kopyalama olayını göndermezse (odakta metin yoksa) 150 ms sonra panoya kendimiz yazarız.
-      if(mod&&!e.shiftKey&&!e.altKey&&tus==='c'&&G.aralik()){const t0=Date.now();setTimeout(()=>{if(son.kopya<t0&&window.__vg&&window.__vg.aktif())window.__vg.kopyala();},150);return;}
+      if(mod&&!e.shiftKey&&!e.altKey&&tus==='c'&&G.aralik()){son.bekle=true;setTimeout(()=>{if(son.bekle&&window.__vg&&window.__vg.aktif()){son.bekle=false;window.__vg.kopyala();}},150);return;}
       const A=G.aralik();if(!A)return;const P=S.pt.vsel;
       if(e.key==='Escape'){S.pt.vsel=null;{const kb=byId('vBridge');if(kb)kb.value='';}byId('vGrid').querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const b=byId('vSecBar');if(b){b.style.display='none';b.innerHTML='';}return;}
       if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(A.c0===0&&A.c1===4)G.satirSil(A);else window.__vDoldur('',A);return;}
