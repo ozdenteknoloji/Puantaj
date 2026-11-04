@@ -456,7 +456,7 @@ table.vg2 td.rn[data-rn]{cursor:pointer}
 table.vg2 td.rn[data-rn]:hover{background:var(--line);color:var(--ink)}
 table.vg2 th.rn{cursor:pointer}
 table.vg2 td.rn.rsel{background:var(--accent-ink);color:#fff}
-.vsecbar{flex-wrap:wrap}
+.kfbar.vsecbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:55;margin:0;flex-wrap:wrap;max-width:calc(100vw - 24px);box-shadow:0 8px 28px rgba(0,0,0,.22);border:1px solid var(--line);padding:8px 10px}
 .vsecbar span{margin-right:auto}
 .vsecbar .mini{margin-left:0;padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--accent-ink);font-weight:700}
 .vsecbar .mini.tehlike{color:var(--bad)}
