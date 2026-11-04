@@ -460,3 +460,8 @@ table.vg2 td.rn.rsel{background:var(--accent-ink);color:#fff}
 .vsecbar span{margin-right:auto}
 .vsecbar .mini{margin-left:0;padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--accent-ink);font-weight:700}
 .vsecbar .mini.tehlike{color:var(--bad)}
+.vmenu{position:fixed;z-index:70;min-width:200px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:5px;font-size:13px}
+.vmenu .vmb{padding:5px 9px 6px;font-size:11.5px;font-weight:700;color:var(--mut);border-bottom:1px solid var(--line);margin-bottom:3px}
+.vmenu button{display:flex;justify-content:space-between;gap:16px;width:100%;text-align:left;padding:7px 9px;border-radius:7px;font:inherit;font-weight:600;color:var(--ink);background:none;border:0;cursor:pointer}
+.vmenu button:hover{background:var(--soft)}.vmenu button span{color:var(--mut);font-weight:500;font-size:11.5px}
+.vmenu button.tehlike{color:var(--bad)}
