@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=194;
+const APP_SURUM=195;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1808,7 +1808,7 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
      <td class="l dur">${k.gecersiz?`<span class="chip bad">${esc(k.hata)}</span>`:k.uyari?`<span class="chip warn">${esc(k.uyari)}</span>`:k.gonder?`<span class="chip ok">→ ${esc(k.gonderAd)} şubesine işlenir</span>`:''}</td><td>${kil?'':`<button class="mini" data-sil="${esc(v.id)}" title="Satırı sil">✕</button>`}</td></tr>`;});
   if(!V.kesin)h+=`<tr class="ekle"><td colspan="8"><button class="mini ekleB" id="vSatir">+ Satır ekle</button><button class="mini ekleB" id="vSatir10">+ 10 satır</button></td></tr></tbody></table></div>
    <datalist id="vKisiL">${kL.map(([id,ad])=>`<option value="${esc(adBuyuk(ad))}">`).join('')}</datalist>
-   <p class="note yardim">Excel gibi: hücreye tıklayıp seçin, sürükleyerek ya da Shift ile aralık seçin; soldaki satır numarasına tıklayarak (sürükleyerek) bütün satırları seçin, numaraların üstündeki # ile hepsini seçin. Ctrl+C kopyalar, Ctrl+V yapıştırır, Ctrl+Z son toplu işlemi geri alır. Delete: hücre seçiliyse içini boşaltır, tam satır seçiliyse satırları siler (önce sorar). Dolu hücrelerin üzerine yapıştırırken de önce sorulur. Çift tıklayarak ya da yazmaya başlayarak düzenleyin. Excel'deki satırları (TARİH · ŞUBE · AD SOYAD · VERİ TÜRÜ · MİKTAR · AÇIKLAMA) kopyalayıp seçili hücreye yapıştırın (seçim yoksa ilk boş satıra); satırlar kendiliğinden eklenir, şube sütunu atlanır. Yazdıklarınız anında kaydedilir. İsmi ya da türü tutmayan satırlar kırmızı görünür ve hesaba katılmaz.${V.kilitli?' Ay onaylandığı için gün türleri (rapor, izin, part gün) eklenemez; onaydan sonra eklenen kişiye de giriş yapılamaz. Düzeltme için kilidi açıp yeniden onaylayın.':''} Rapor, izin ve part gün hangi şubede girilirse girilsin kişinin SGK şubesinde ve maaş şubesinde sayılır.</p>`;
+   <p class="note yardim">Excel gibi: hücreye tıklayıp seçin, sürükleyerek ya da Shift ile aralık seçin; soldaki satır numarasına tıklayarak (sürükleyerek) bütün satırları seçin, numaraların üstündeki # ile hepsini seçin. Ctrl+C kopyalar, Ctrl+V yapıştırır, Ctrl+Z son toplu işlemi geri alır. Delete: hücre seçiliyse temizler, tam satır seçiliyse satırları siler (önce sorar). Dolu hücrelerin üzerine yapıştırırken de önce sorulur. Çift tıklayarak ya da yazmaya başlayarak düzenleyin. Excel'deki satırları (TARİH · ŞUBE · AD SOYAD · VERİ TÜRÜ · MİKTAR · AÇIKLAMA) kopyalayıp seçili hücreye yapıştırın (seçim yoksa ilk boş satıra); satırlar kendiliğinden eklenir, şube sütunu atlanır. Yazdıklarınız anında kaydedilir. İsmi ya da türü tutmayan satırlar kırmızı görünür ve hesaba katılmaz.${V.kilitli?' Ay onaylandığı için gün türleri (rapor, izin, part gün) eklenemez; onaydan sonra eklenen kişiye de giriş yapılamaz. Düzeltme için kilidi açıp yeniden onaylayın.':''} Rapor, izin ve part gün hangi şubede girilirse girilsin kişinin SGK şubesinde ve maaş şubesinde sayılır.</p>`;
   // Çizelgeden gelen fazla mesai / saat: açık ayda onaylanmadan hesaba girmez (sagHesap kapısı). Onay kutusu ve "Hepsini onayla".
   const onayAcik=otoKapi(V.ak,V.kilitli,V.kesin);const satirM=new Map(V.satir.map(x=>[x.pid,x]));
   const bekliyor=v=>{const x=satirM.get(v.pid);const b=x&&x.hes.otoBekle;return !!(b&&b[v.on]!=null);};const reddi=v=>{const x=satirM.get(v.pid);const r=x&&x.hes.otoRed;return !!(r&&r[v.on]);};
@@ -1906,7 +1906,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     if(!zorla&&a&&a!==document.body&&a!==grid&&a!==kopru)return;kopru.value=x;try{kopru.focus({preventScroll:true});kopru.select();}catch(_){}};
   const secBar=()=>{const bar=byId('vSecBar');if(!bar)return;const A=aralik();if(!A){bar.style.display='none';bar.innerHTML='';kopru.value='';return;}
     const sr=A.r1-A.r0+1,sc=A.c1-A.c0+1,tam=A.c0===0&&A.c1===4;bar.style.display='flex';
-    bar.innerHTML=`<span>${tam?sr+' satır seçili':(sr*sc)+' hücre seçili'}</span><button class="mini" id="vKop">Kopyala</button><button class="mini" id="vTem">İçini boşalt</button><button class="mini tehlike" id="vSat">${sr} satırı sil</button><button class="mini" id="vKapa">Seçimi kaldır</button>`;
+    bar.innerHTML=`<span>${tam?sr+' satır seçili':(sr*sc)+' hücre seçili'}</span><button class="mini" id="vKop">Kopyala</button><button class="mini" id="vTem">Temizle</button><button class="mini tehlike" id="vSat">${sr} satırı sil</button><button class="mini" id="vKapa">Seçimi kaldır</button>`;
     byId('vKop').onclick=()=>window.__vg.kopyala();byId('vTem').onclick=()=>window.__vDoldur('',aralik());byId('vSat').onclick=()=>satirSil(aralik());byId('vKapa').onclick=()=>{S.pt.vsel=null;selCiz();};};
   const selCiz=()=>{grid.querySelectorAll('td.vsel,td.vakt,td.rsel').forEach(t=>t.classList.remove('vsel','vakt','rsel'));const A=aralik();secBar();if(!A)return;
     for(let r=A.r0;r<=A.r1;r++){for(let c=A.c0;c<=A.c1;c++){const e=hucreEl(r,c);const t=e&&e.closest('td');if(t)t.classList.add('vsel');}const rn=grid.querySelector(`tr[data-r="${r}"] td.rn`);if(rn)rn.classList.add('rsel');}
@@ -1990,7 +1990,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     if(!icinde){if(rn)satirSec(r,false);else sec(k.r,k.c);}
     const B=aralik();if(!B)return;const sr=B.r1-B.r0+1,sc=B.c1-B.c0+1,tam=B.c0===0&&B.c1===4;const geriVar=(VGERI[geriKey]||[]).length>0;
     const m=document.createElement('div');m.id='vMenu';m.className='vmenu';
-    m.innerHTML=`<div class="vmb">${tam?sr+' satır':(sr*sc)+' hücre'} seçili</div><button data-m="kop">Kopyala<span>Ctrl+C</span></button><button data-m="yap">Yapıştır<span>Ctrl+V</span></button><button data-m="bos">İçini boşalt<span>Delete</span></button><button data-m="sil" class="tehlike">${sr} satırı sil</button>${geriVar?'<button data-m="geri">Geri al<span>Ctrl+Z</span></button>':''}`;
+    m.innerHTML=`<div class="vmb">${tam?sr+' satır':(sr*sc)+' hücre'} seçili</div><button data-m="kop">Kopyala<span>Ctrl+C</span></button><button data-m="yap">Yapıştır<span>Ctrl+V</span></button><button data-m="bos">Temizle<span>Delete</span></button><button data-m="sil" class="tehlike">${sr} satırı sil</button>${geriVar?'<button data-m="geri">Geri al<span>Ctrl+Z</span></button>':''}`;
     document.body.appendChild(m);const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.max(4,Math.min(e.clientX,innerWidth-w-4))+'px';m.style.top=Math.max(4,Math.min(e.clientY,innerHeight-h-4))+'px';
     m.onclick=ev=>{const b=ev.target.closest('button[data-m]');if(!b)return;const t=b.dataset.m;menuKapat();const G=window.__vg;
       if(t==='kop')G.kopyala();
@@ -2012,7 +2012,7 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
       if(tek)return;const L=veri0();const VI=vis();const bosP=VI.findIndex(i=>L[i]&&veriKontrol(L[i],kL,ak,V.kilitli,V).bos);yapistir(t,bosP>=0?bosP:VI.length,0);}};
   window.__vDoldur=(val,A)=>{if(!A)return;const L=veri0().slice();const VI=vis();let n=0,deg=0;const dg=new Set();
     for(let p=A.r0;p<=A.r1;p++){const r=VI[p];if(r==null||!L[r])continue;const once=L[r];let v={...once};for(let c=A.c0;c<=A.c1;c++){if(c>4)continue;const el=hucreEl(p,c);if(el&&el.disabled)continue;v=hucreYaz(v,c,val);n++;if(alan(once,c)!==''&&alan(once,c)!==alan(v,c)){deg++;dg.add(r);}}L[r]=v;}
-    const uygula=()=>{ayarlaGeri(L,true);toast(val===''?`${n} hücre boşaltıldı. Geri almak için Ctrl+Z.`:`${n} hücreye yapıştırıldı. Geri almak için Ctrl+Z.`);};
+    const uygula=()=>{ayarlaGeri(L,true);toast(val===''?`${n} hücre temizlendi. Geri almak için Ctrl+Z.`:`${n} hücreye yapıştırıldı. Geri almak için Ctrl+Z.`);};
     if(val!==''&&deg>1)onayAc('Yapıştırılsın mı?',`<b>${dg.size} satırdaki ${deg} dolu hücrenin</b> üzerine aynı değer yazılacak.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, yapıştır',uygula);else uygula();};
   if(!veriYapistirBagli){veriYapistirBagli=true;
     const klavyeUygun=a=>!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.id!=='vBridge'&&!(byId('vGrid')&&byId('vGrid').contains(a)));
