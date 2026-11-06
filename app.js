@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=198;
+const APP_SURUM=199;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1152,12 +1152,12 @@ function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH
       c.textAlign='right';if(ib){c.fillStyle='#0b1220';c.font=`700 38px ${M}`;c.fillText(ib,W-P,y+RH/2);}else{c.fillStyle='#b42318';c.font=`800 34px ${F}`;c.fillText('IBAN girilmemiş',W-P,y+RH/2);}
       c.textAlign='left';y+=RH;});});
   c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
-async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);const ad=`IBAN-${ak}.png`;const baslik=`${ayAdi(ak)} IBAN listesi`;
+async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);const ad=`IBAN-${ak}.png`;const baslik=`${AY[+ak.slice(5)-1]} Ayı IBAN Listesi`;
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));if(!bl){toast('Fotoğraf hazırlanamadı.');return;}const f=new File([bl],ad,{type:'image/png'});
   // Bilgisayarda (fare ile): fotoğraf panoya kopyalanır, WhatsApp Web'e Ctrl+V ile yapıştırılır. Telefonda paylaş menüsü açılır.
   const pc=window.matchMedia&&matchMedia('(pointer:fine)').matches;
-  if(pc&&navigator.clipboard&&window.ClipboardItem){try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);toast('Fotoğraf panoya kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return;}catch(e){console.error(e);}}
-  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+  if(pc&&navigator.clipboard&&window.ClipboardItem){try{try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl,'text/plain':new Blob([baslik],{type:'text/plain'})})]);}catch(_){await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);}toast('Fotoğraf panoya kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return;}catch(e){console.error(e);}}
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Fotoğraf indirildi; WhatsApp\'a ekleyebilirsiniz.');}
 async function panoyaYaz(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok;}catch(_){return false;}}}
 async function ibanExcel(ak){const L=ibanListe(ak);let X;try{X=await xlsxLib();}catch(e){toast('Excel kütüphanesi yüklenemedi. İnternet bağlantısını kontrol edin.');return;}
