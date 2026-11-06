@@ -309,6 +309,26 @@ service cloud.firestore {
       allow delete: if isveren();
     }
 
+    // Bölge müdürünün "görme başlangıcı" (kullanicilar.gorBas, 'YYYY-AA'): o aydan önceki ödeme / maaş bilgisini göremez. Boşsa kısıt yok.
+    function bolgedeAy(s, a) { return bolgede(s) && (ben().rol == 'isveren' || a >= ben().get('gorBas', '')); }
+
+    // Kişi kartı · Ödemeler: şube + ay başına kişi başı ödeme özeti ve maaş değişikliği kayıtları.
+    match /odemeOzet/{s}/aylar/{a} {
+      allow read, write: if bolgedeAy(s, a);
+    }
+
+    // Kişi kartı · Geçmiş: kayıt değişiklikleri (kim, ne zaman). Herkes kendi yaptığı değişikliği ekler; okuyan sadece işveren
+    // ve kişinin şubelerinden birinin bölge müdürü. Eklenen kayıt değiştirilemez, silinemez.
+    match /personelLog/{p} {
+      allow get: if isveren() || (aktif() && ben().rol == 'bolge' && resource.data.get('subeler', []).hasAny(ben().subeler));
+      allow create: if aktif() && request.resource.data.keys().hasOnly(['e', 'subeler']);
+      allow update: if aktif() && request.resource.data.keys().hasOnly(['e', 'subeler'])
+        && request.resource.data.e.diff(resource.data.e).changedKeys().size() == 0
+        && request.resource.data.e.diff(resource.data.e).removedKeys().size() == 0
+        && request.resource.data.get('subeler', []).hasAll(resource.data.get('subeler', []));
+      allow delete: if false;
+    }
+
     // Anlaşılan net maaşlar — sadece sorumlu bölge müdürü ve işveren.
     match /maaslar/{s} {
       allow read, write: if bolgede(s);
