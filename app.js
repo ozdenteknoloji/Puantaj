@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=202;
+const APP_SURUM=203;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1186,9 +1186,9 @@ function ibanXlsxBlob(satirlar){const x=v=>String(v??'').replace(/&/g,'&amp;').r
   const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sayfa1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
   const wbr=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
   return zipYap([['[Content_Types].xml',ct],['_rels/.rels',rels],['xl/workbook.xml',wb],['xl/_rels/workbook.xml.rels',wbr],['xl/styles.xml',styles],['xl/worksheets/sheet1.xml',sheet]]);}
-// Satırlar: o ay işe girenler + IBAN'ı değişenler, şube sonra ad sırasıyla. SGK günü 0 olanlar yok.
+// Satırlar: o ay işe girenler + IBAN'ı değişenler, SGK şubesi sonra ad sırasıyla. SGK günü 0 olanlar yok.
 function ibanExcel(ak){const L=ibanListe(ak);const B=t=>String(t||'').toLocaleUpperCase('tr-TR');
-  const sat=[...L.g,...L.u].map(p=>[B(subeAdi(maasSubesi(p))),adBuyuk(p.ad),p.iban||'']).sort((a,b)=>a[0].localeCompare(b[0],'tr')||a[1].localeCompare(b[1],'tr'));
+  const sat=[...L.g,...L.u].map(p=>[B(p.sgkSube&&p.sgkSube!==SGK_YOK?subeAdi(p.sgkSube):subeAdi(maasSubesi(p))),adBuyuk(p.ad),p.iban||'']).sort((a,b)=>a[0].localeCompare(b[0],'tr')||a[1].localeCompare(b[1],'tr'));
   const ad=`GARANTİ İBANLARI ${B(AY[+ak.slice(5)-1])} ${ak.slice(2,4)}.xlsx`;const f=ibanXlsxBlob(sat);
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   if(sat.some(s=>!s[2]))toast('Excel indirildi. Dikkat: IBAN\'ı eksik kişiler var, o hücreler boş.');}
