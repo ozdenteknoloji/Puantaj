@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=201;
+const APP_SURUM=202;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1160,10 +1160,38 @@ async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=i
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Fotoğraf indirildi; WhatsApp\'a ekleyebilirsiniz.');}
 async function panoyaYaz(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok;}catch(_){return false;}}}
-async function ibanExcel(ak){const L=ibanListe(ak);let X;try{X=await xlsxLib();}catch(e){toast('Excel kütüphanesi yüklenemedi. İnternet bağlantısını kontrol edin.');return;}
-  const sat=(p,d)=>[adBuyuk(p.ad),tcOf(p)||'',p.iban||'',subeAdi(maasSubesi(p)),d,trTarih(p.giris)];
-  const ws=X.utils.aoa_to_sheet([['Ad soyad','TC kimlik no','IBAN','Şube','Durum','SGK giriş'],...L.g.map(p=>sat(p,'Yeni giriş')),...L.u.map(p=>sat(p,'IBAN güncellendi'))]);
-  ws['!cols']=[{wch:28},{wch:14},{wch:30},{wch:18},{wch:18},{wch:12}];const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,'IBAN');X.writeFile(wb,`IBAN-${ak}.xlsx`);}
+// Bankaya giden IBAN Excel'i (Emre'nin kendi formatı): Sayfa1, B2'den başlar, ŞUBE · AD SOYAD · İBAN; kalın, ortalı, ince kenarlıklı.
+// Biçim için dış kütüphane yok: küçük bir xlsx (zip) burada yazılır.
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC_T[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+function zipYap(dosyalar){const en=new TextEncoder();const par=[],mer=[];let off=0;
+  const u16=v=>[v&255,(v>>>8)&255],u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+  dosyalar.forEach(([ad,metin])=>{const a=en.encode(ad),d=en.encode(metin),cr=crc32(d);
+    const h=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(cr),...u32(d.length),...u32(d.length),...u16(a.length),...u16(0)]);
+    par.push(h,a,d);mer.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(cr),...u32(d.length),...u32(d.length),...u16(a.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),a);
+    off+=h.length+a.length+d.length;});
+  const mb=mer.reduce((t,x)=>t+x.length,0);const son=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(dosyalar.length),...u16(dosyalar.length),...u32(mb),...u32(off),...u16(0)]);
+  return new Blob([...par,...mer,son],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});}
+function ibanXlsxBlob(satirlar){const x=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const hc=(r,c,v,st)=>`<c r="${c}${r}" t="inlineStr" s="${st}"><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+  let rows=`<row r="2">${hc(2,'B','ŞUBE',1)}${hc(2,'C','AD SOYAD',1)}${hc(2,'D','İBAN',2)}</row>`;
+  satirlar.forEach((s,i)=>{const r=i+3;rows+=`<row r="${r}">${hc(r,'B',s[0],3)}${hc(r,'C',s[1],3)}${hc(r,'D',s[2],4)}</row>`;});
+  const son=Math.max(satirlar.length+2,2);
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="B2:D${son}"/><sheetViews><sheetView workbookViewId="0" tabSelected="1"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="2" max="2" width="12.28515625" customWidth="1"/><col min="3" max="3" width="39" customWidth="1"/><col min="4" max="4" width="33.28515625" customWidth="1"/></cols><sheetData>${rows}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>`;
+  const font=(sz,b)=>`<font>${b?'<b/>':''}<sz val="${sz}"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>`;
+  const xf=(f,b)=>`<xf numFmtId="0" fontId="${f}" fillId="0" borderId="${b}" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="4">${font(11,0)}${font(12,1)}${font(11,1)}${font(10,1)}</fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>${xf(1,1)}${xf(3,1)}${xf(2,1)}${xf(3,1)}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sayfa1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbr=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  return zipYap([['[Content_Types].xml',ct],['_rels/.rels',rels],['xl/workbook.xml',wb],['xl/_rels/workbook.xml.rels',wbr],['xl/styles.xml',styles],['xl/worksheets/sheet1.xml',sheet]]);}
+// Satırlar: o ay işe girenler + IBAN'ı değişenler, şube sonra ad sırasıyla. SGK günü 0 olanlar yok.
+function ibanExcel(ak){const L=ibanListe(ak);const B=t=>String(t||'').toLocaleUpperCase('tr-TR');
+  const sat=[...L.g,...L.u].map(p=>[B(subeAdi(maasSubesi(p))),adBuyuk(p.ad),p.iban||'']).sort((a,b)=>a[0].localeCompare(b[0],'tr')||a[1].localeCompare(b[1],'tr'));
+  const ad=`GARANTİ İBANLARI ${B(AY[+ak.slice(5)-1])} ${ak.slice(2,4)}.xlsx`;const f=ibanXlsxBlob(sat);
+  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  if(sat.some(s=>!s[2]))toast('Excel indirildi. Dikkat: IBAN\'ı eksik kişiler var, o hücreler boş.');}
 function ibanKutusu(){if(!puantajYetki())return'';const bu=ayKey(today());const ak=ibanAyi();const acik=true;const L=ibanListe(ak);const hepsi=[...L.g,...L.u];const eks=hepsi.filter(p=>!p.iban).length;
   let h=`<div class="ibk"><div class="ibk-h" id="ibanBas"><b>İşe girenlerin IBAN listesi</b><span class="n">${hepsi.length}</span>${eks?`<span class="chip bad">${eks} IBAN eksik</span>`:''}</div>`;
   if(acik){tcYukle(hepsi);const aylar=[...new Set([ak,...[0,1,2,3,4,5].map(i=>ayKaydir(bu,-i))])].sort().reverse();
