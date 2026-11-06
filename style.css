@@ -480,3 +480,4 @@ table.bl tr.odak td{background:var(--ok-bg)!important;transition:background .6s}
 .ibk-f{flex-wrap:wrap}
 .ibk-s.pas{color:var(--line);background:var(--soft)}
 .ibr.pas .n b,.ibr.pas .n i,.ibr.pas .v{color:var(--mut);opacity:.75}
+.byq{color:var(--bad);font-size:16px;font-weight:800}
