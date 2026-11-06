@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=203;
+const APP_SURUM=204;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1125,8 +1125,10 @@ function ibanOzetYukle(ak){S.ibanOzet=S.ibanOzet||{};if(S.ibanOzet[ak])return;S.
     S.ibanOzet[ak]={ui};if(S.tab==='personel')render();}).catch(e=>{console.error(e);S.ibanOzet[ak]={ui:{},hata:true};});}
 function ibanSgkGunuYok(p,ak){const o=S.ibanOzet&&S.ibanOzet[ak];if(!o||!o.ui)return false;const n=o.ui[p.id]||0;if(!n)return false;
   const[y,m]=ak.split('-').map(Number);const last=new Date(y,m,0).getDate();let ist=0;for(let d=1;d<=last;d++)if(sgkli(p,new Date(y,m-1,d)))ist++;return ist>0&&sgkGunSayisi(ist,last,n)===0;}
+// IBAN listesinde (ekran, fotoğraf, Excel) şube = SGK şubesi; SGK şubesi yoksa maaş şubesi.
+function ibanSube(p){return p.sgkSube&&p.sgkSube!==SGK_YOK?subeAdi(p.sgkSube):subeAdi(maasSubesi(p));}
 function ibanListe(ak){ibanOzetYukle(ak);const g=[],u=[],n=[];S.personel.forEach(p=>{if(p.giris&&p.giris.slice(0,7)===ak&&p.sgkSube!==SGK_YOK){(ibanSgkGunuYok(p,ak)?n:g).push(p);}else if(p.iban&&ibanDegisim(p).slice(0,7)===ak)u.push(p);});
-  const o=(a,b)=>String(subeAdi(maasSubesi(a))).localeCompare(String(subeAdi(maasSubesi(b))),'tr')||String(a.ad).localeCompare(String(b.ad),'tr');return{g:g.sort(o),u:u.sort(o),n:n.sort(o)};}
+  const o=(a,b)=>String(ibanSube(a)).localeCompare(String(ibanSube(b)),'tr')||String(a.ad).localeCompare(String(b.ad),'tr');return{g:g.sort(o),u:u.sort(o),n:n.sort(o)};}
 function ibanMetin(ak){const L=ibanListe(ak);const s=p=>`${adBuyuk(p.ad)} | ${p.iban||'IBAN yok'}`;
   let t=`${ayAdi(ak)} · yeni girenler (${L.g.length})\n`+L.g.map(s).join('\n');if(L.u.length)t+=`\n\nIBAN'ı güncellenenler (${L.u.length})\n`+L.u.map(s).join('\n');return t;}
 // IBAN listesi fotoğrafı (WhatsApp'a atılır, patron IBAN'ı fotoğraftan kopyalar): büyük yazı, IBAN boşluksuz;
@@ -1148,7 +1150,7 @@ function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH
       if(b.pas){c.fillStyle='#9ca3af';c.font=`700 28px ${F}`;c.fillText(adBuyuk(p.ad),P,y+NH/2);c.textAlign='right';c.font=`600 24px ${F}`;c.fillText('IBAN gerekmiyor',W-P,y+NH/2);c.textAlign='left';y+=NH;return;}
       if(!ib){c.fillStyle='#fdecea';c.fillRect(0,y,W,RH);}c.fillStyle='#e5e7eb';c.fillRect(0,y+RH-1,W,1);
       c.fillStyle='#111827';c.font=`800 32px ${F}`;c.fillText(adBuyuk(p.ad),P,y+38);
-      c.fillStyle='#6b7280';c.font=`600 22px ${F}`;c.fillText([subeAdi(maasSubesi(p)),gorevTahmin(p)||'',alt].filter(Boolean).join(' · '),P,y+76);
+      c.fillStyle='#6b7280';c.font=`600 22px ${F}`;c.fillText([ibanSube(p),gorevTahmin(p)||'',alt].filter(Boolean).join(' · '),P,y+76);
       c.textAlign='right';if(ib){c.fillStyle='#0b1220';c.font=`700 38px ${M}`;c.fillText(ib,W-P,y+RH/2);}else{c.fillStyle='#b42318';c.font=`800 34px ${F}`;c.fillText('IBAN girilmemiş',W-P,y+RH/2);}
       c.textAlign='left';y+=RH;});});
   c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
@@ -1188,18 +1190,18 @@ function ibanXlsxBlob(satirlar){const x=v=>String(v??'').replace(/&/g,'&amp;').r
   return zipYap([['[Content_Types].xml',ct],['_rels/.rels',rels],['xl/workbook.xml',wb],['xl/_rels/workbook.xml.rels',wbr],['xl/styles.xml',styles],['xl/worksheets/sheet1.xml',sheet]]);}
 // Satırlar: o ay işe girenler + IBAN'ı değişenler, SGK şubesi sonra ad sırasıyla. SGK günü 0 olanlar yok.
 function ibanExcel(ak){const L=ibanListe(ak);const B=t=>String(t||'').toLocaleUpperCase('tr-TR');
-  const sat=[...L.g,...L.u].map(p=>[B(p.sgkSube&&p.sgkSube!==SGK_YOK?subeAdi(p.sgkSube):subeAdi(maasSubesi(p))),adBuyuk(p.ad),p.iban||'']).sort((a,b)=>a[0].localeCompare(b[0],'tr')||a[1].localeCompare(b[1],'tr'));
+  const sat=[...L.g,...L.u].map(p=>[B(ibanSube(p)),adBuyuk(p.ad),p.iban||'']).sort((a,b)=>a[0].localeCompare(b[0],'tr')||a[1].localeCompare(b[1],'tr'));
   const ad=`GARANTİ İBANLARI ${B(AY[+ak.slice(5)-1])} ${ak.slice(2,4)}.xlsx`;const f=ibanXlsxBlob(sat);
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   if(sat.some(s=>!s[2]))toast('Excel indirildi. Dikkat: IBAN\'ı eksik kişiler var, o hücreler boş.');}
 function ibanKutusu(){if(!puantajYetki())return'';const bu=ayKey(today());const ak=ibanAyi();const acik=true;const L=ibanListe(ak);const hepsi=[...L.g,...L.u];const eks=hepsi.filter(p=>!p.iban).length;
   let h=`<div class="ibk"><div class="ibk-h" id="ibanBas"><b>İşe girenlerin IBAN listesi</b><span class="n">${hepsi.length}</span>${eks?`<span class="chip bad">${eks} IBAN eksik</span>`:''}</div>`;
   if(acik){tcYukle(hepsi);const aylar=[...new Set([ak,...[0,1,2,3,4,5].map(i=>ayKaydir(bu,-i))])].sort().reverse();
-    const satir=(p,gun,guncel)=>{const ib=p.iban||'';return `<div class="ibr git ${ib?'':'eks'}" data-ibgit="${esc(p.id)}" title="Personel listesinde IBAN alanına git"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(subeAdi(maasSubesi(p)))} · ${gun}</i></div><div class="v"><span class="mono">${ib?esc(ib):'IBAN girilmemiş · girmek için dokunun ›'}</span>${guncel&&p.ibanEski?`<span>eski: ${esc(p.ibanEski)}</span>`:''}</div></div>`;};
+    const satir=(p,gun,guncel)=>{const ib=p.iban||'';return `<div class="ibr git ${ib?'':'eks'}" data-ibgit="${esc(p.id)}" title="Personel listesinde IBAN alanına git"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(ibanSube(p))} · ${gun}</i></div><div class="v"><span class="mono">${ib?esc(ib):'IBAN girilmemiş · girmek için dokunun ›'}</span>${guncel&&p.ibanEski?`<span>eski: ${esc(p.ibanEski)}</span>`:''}</div></div>`;};
     h+=`<div class="ibk-t"><label>Ay <select id="ibanAy">${aylar.map(a=>`<option value="${a}" ${a===ak?'selected':''}>${ayAdi(a)}</option>`).join('')}</select></label><span>Tüm şubeler tek listede</span></div>
      <div class="ibk-s"><span>Yeni girenler · ${L.g.length}</span><span>SGK girişi bu ay</span></div>${L.g.length?L.g.map(p=>satir(p,'giriş '+trTarih(p.giris),false)).join(''):`<div class="ibr"><div class="n"><i>${L.n.length?'Bu ay IBAN gereken yeni giriş yok.':'Bu ay SGK girişi olan yok.'}</i></div></div>`}
      <div class="ibk-s"><span>IBAN'ı güncellenenler · ${L.u.length}</span><span>Bu ay değişen</span></div>${L.u.length?L.u.map(p=>satir(p,'değişiklik '+trTarih(ibanDegisim(p)),true)).join(''):'<div class="ibr"><div class="n"><i>Bu ay IBAN değişikliği yok.</i></div></div>'}
-     ${L.n.length?`<div class="ibk-s pas"><span>IBAN gerekmeyenler · ${L.n.length}</span><span>SGK günü 0</span></div>${L.n.map(p=>`<div class="ibr pas"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(subeAdi(maasSubesi(p)))} · giriş ${trTarih(p.giris)}</i></div><div class="v"><span>SGK günü 0 · IBAN gerekmiyor</span></div></div>`).join('')}`:''}
+     ${L.n.length?`<div class="ibk-s pas"><span>IBAN gerekmeyenler · ${L.n.length}</span><span>SGK günü 0</span></div>${L.n.map(p=>`<div class="ibr pas"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(ibanSube(p))} · giriş ${trTarih(p.giris)}</i></div><div class="v"><span>SGK günü 0 · IBAN gerekmiyor</span></div></div>`).join('')}`:''}
      <div class="ibk-f"><button class="btn primary grow" id="ibanFoto">${window.matchMedia&&matchMedia('(pointer:fine)').matches?'Fotoğrafı kopyala':'Fotoğraf · WhatsApp'}</button><button class="btn grow" id="ibanKop">Metin kopyala</button><button class="btn grow" id="ibanXls">Excel indir</button></div>`;}
   return h+'</div>';}
 // Personel listesi: tek tablo, her şey satır içinde düzenlenir, değişiklik anında kaydedilir.
