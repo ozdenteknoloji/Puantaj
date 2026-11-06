@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=197;
+const APP_SURUM=198;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1154,6 +1154,9 @@ function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH
   c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
 async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);const ad=`IBAN-${ak}.png`;const baslik=`${ayAdi(ak)} IBAN listesi`;
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));if(!bl){toast('Fotoğraf hazırlanamadı.');return;}const f=new File([bl],ad,{type:'image/png'});
+  // Bilgisayarda (fare ile): fotoğraf panoya kopyalanır, WhatsApp Web'e Ctrl+V ile yapıştırılır. Telefonda paylaş menüsü açılır.
+  const pc=window.matchMedia&&matchMedia('(pointer:fine)').matches;
+  if(pc&&navigator.clipboard&&window.ClipboardItem){try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);toast('Fotoğraf panoya kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return;}catch(e){console.error(e);}}
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Fotoğraf indirildi; WhatsApp\'a ekleyebilirsiniz.');}
 async function panoyaYaz(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok;}catch(_){return false;}}}
@@ -1169,7 +1172,7 @@ function ibanKutusu(){if(!puantajYetki())return'';const bu=ayKey(today());const 
      <div class="ibk-s"><span>Yeni girenler · ${L.g.length}</span><span>SGK girişi bu ay</span></div>${L.g.length?L.g.map(p=>satir(p,'giriş '+trTarih(p.giris),false)).join(''):`<div class="ibr"><div class="n"><i>${L.n.length?'Bu ay IBAN gereken yeni giriş yok.':'Bu ay SGK girişi olan yok.'}</i></div></div>`}
      <div class="ibk-s"><span>IBAN'ı güncellenenler · ${L.u.length}</span><span>Bu ay değişen</span></div>${L.u.length?L.u.map(p=>satir(p,'değişiklik '+trTarih(ibanDegisim(p)),true)).join(''):'<div class="ibr"><div class="n"><i>Bu ay IBAN değişikliği yok.</i></div></div>'}
      ${L.n.length?`<div class="ibk-s pas"><span>IBAN gerekmeyenler · ${L.n.length}</span><span>SGK günü 0</span></div>${L.n.map(p=>`<div class="ibr pas"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(subeAdi(maasSubesi(p)))} · giriş ${trTarih(p.giris)}</i></div><div class="v"><span>SGK günü 0 · IBAN gerekmiyor</span></div></div>`).join('')}`:''}
-     <div class="ibk-f"><button class="btn primary grow" id="ibanFoto">Fotoğraf · WhatsApp</button><button class="btn grow" id="ibanKop">Metin kopyala</button><button class="btn grow" id="ibanXls">Excel indir</button></div>`;}
+     <div class="ibk-f"><button class="btn primary grow" id="ibanFoto">${window.matchMedia&&matchMedia('(pointer:fine)').matches?'Fotoğrafı kopyala':'Fotoğraf · WhatsApp'}</button><button class="btn grow" id="ibanKop">Metin kopyala</button><button class="btn grow" id="ibanXls">Excel indir</button></div>`;}
   return h+'</div>';}
 // Personel listesi: tek tablo, her şey satır içinde düzenlenir, değişiklik anında kaydedilir.
 // Aynı kişi farklı tarihlerde farklı şubelerde SGK'lı olabilir (şube değişikliği); aynı tarihlerde olamaz.
