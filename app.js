@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=200;
+const APP_SURUM=201;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1156,9 +1156,7 @@ async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=i
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));if(!bl){toast('Fotoğraf hazırlanamadı.');return;}const f=new File([bl],ad,{type:'image/png'});
   // Bilgisayarda (fare ile): fotoğraf panoya kopyalanır, WhatsApp Web'e Ctrl+V ile yapıştırılır. Telefonda paylaş menüsü açılır.
   const pc=window.matchMedia&&matchMedia('(pointer:fine)').matches;
-  if(pc&&navigator.clipboard&&window.ClipboardItem){try{try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl,'text/plain':new Blob([baslik],{type:'text/plain'})})]);}catch(_){await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);}toast('Fotoğraf kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın, sonra "Açıklamayı kopyala"ya basıp açıklama kutusuna Ctrl+V.');
-    const bt=byId('ibanFoto');if(bt){bt.textContent='Açıklamayı kopyala';bt.onclick=async()=>{toast(await panoyaYaz(baslik)?`"${baslik}" kopyalandı. Fotoğrafın açıklama kutusuna Ctrl+V.`:'Kopyalanamadı.');bt.textContent='Fotoğrafı kopyala';bt.onclick=()=>ibanFoto(ak);};}
-    return;}catch(e){console.error(e);}}
+  if(pc&&navigator.clipboard&&window.ClipboardItem){try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);toast('Fotoğraf kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return;}catch(e){console.error(e);}}
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Fotoğraf indirildi; WhatsApp\'a ekleyebilirsiniz.');}
 async function panoyaYaz(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok;}catch(_){return false;}}}
