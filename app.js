@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=205;
+const APP_SURUM=206;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2438,13 +2438,13 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
          <td class="l"><select data-j="${j}" style="max-width:170px"><option value="">— bu şubede yok —</option>${ids.map(id=>`<option value="${esc(id)}" ${id===k.pid?'selected':''}>${esc(V.sol[id].ad)}</option>`).join('')}</select>
          ${k.yol==='tc'?'<br><span class="tag warn">İsim tutmadı, TC ile eşleşti</span>':''}${k.tekrar?'<br><span class="tag warn">Bu kişi başka satırda zaten var, atlanır</span>':''}${h&&h!==S.subeId?`<br><span class="tag">${paketBasiMi(k.pid)?'en çok çalıştığı şube':'maaşı'} ${esc(subeAdi(h))} → oraya işlenir</span>`:''}</td>
          <td>${k.sgkGun??''}</td><td>${sol?sol.gun:''}${fark?' <span class="tag warn">gün farkı</span>':''}</td>
-         <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin"></td></tr>`;};
+         <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin">${yuksekTag(k.netYazi)}</td></tr>`;};
      byId('bOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · ${yok.length} kişi bu şubede yok (atlanır)`:''}. Tutar yanlış okunduysa kutudan düzeltin.</p>
        <div class="tbl-wrap" style="max-height:48vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th>SGK gün</th><th>Puantaj gün</th><th>Net ödenen</th></tr></thead><tbody>${[...es,...satirlar.filter(k=>k.pid&&k.tekrar),...yok].map(satir).join('')}</tbody></table></div>
        <div class="row2"><button class="btn grow" id="bEk">+ PDF ekle</button><button class="btn primary grow" id="bOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
      const be=byId('bEk');if(be)be.onclick=()=>byId('bF').click();
      byId('bOut').querySelectorAll('select[data-j]').forEach(s=>s.onchange=()=>{const k=satirlar[+s.dataset.j];k.pid=s.value||null;k.yol=s.value?'elle':null;ciz();});
-     byId('bOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);i.value=bos?'':fmt(sayi(i.value));});
+     byId('bOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);ciz();});
      const ok=byId('bOk');if(ok)ok.onclick=()=>{const tutarli=es.filter(k=>k.netYazi!=null);if(tutarli.length<es.length)toast(`${es.length-tutarli.length} kişinin net tutarı boş, atlandı.`);isle(tutarli);};};
    const isle=async es=>{const sid0=S.subeId,ak=V.ak;if(sid0!==S.pt.sube||ak!==S.ay){toast('Ekran değişti, bordroyu yeniden yükleyin.');return;}if(await kilitliMi(ptK(sid0,ak)))return;const deg={},tcYeni={};es.forEach(k=>{deg[k.pid]={bankaya:sayi(k.netYazi),kaynak:k.isyeri};if(!tcMap[k.pid]&&k.tc)tcYeni[k.pid]=k.tc;});
       const n=Object.keys(deg).length;if(!n){toast('Eşleşen personel yok.');return;}
@@ -2465,6 +2465,9 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
         if(yetkiYok.length)openSheet(`<h2>Bazı tutarlar işlenemedi</h2><div class="sub">Bu kişilerin maaşı yetkiniz olmayan şubede ödeniyor. Tutarları o şubenin bölge müdürü veri girişine "Bankaya yatan" olarak girmeli.</div><div class="card" style="padding:12px">${yetkiYok.map(esc).join('<br>')}</div><div class="row2"><button class="btn primary grow" onclick="document.getElementById('sheetRoot').innerHTML=''">Tamam</button></div>`);}
       catch(e){yazmaHatasi(e);}};});}
 
+// Bordrodan okunan net bu tutarı geçerse "yüksek" uyarısı (asgari net 28.075 + 5 bayram günü ≈ 32.800). Asgari ücret değişince güncellenir.
+const BORDRO_UST_SINIR=33000;
+const yuksekTag=v=>v!=null&&sayi(v)>BORDRO_UST_SINIR?'<br><span class="tag warn">tutar yüksek, kontrol edin</span>':'';
 /* Toplu bordro: tüm şubelerin PDF'leri tek seferde. Kişiler yetkili olunan tüm şubelerdeki o ay SGK'lı personel içinde (önce TC, sonra isim) bulunur;
    net tutar kişinin maaş şubesinin veri girişine "Bankaya yatan" olarak yazılır (gideceği şube satırda değiştirilebilir). Eşleşmeyen satırda kişi elle seçilir. */
 function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||'').toLocaleUpperCase('tr-TR');
@@ -2496,7 +2499,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
        return `<tr class="${!k.pid?'oto':k.tekrar?'hata':''}"><td class="l">${esc(k.ad)}<br><span class="tag">${esc(k.isyeri)}</span>${k.ocr?' <span class="tag">görselden okundu</span>':''}${(k.uyari||[]).filter(u=>!(k.pid&&/elle seçin/.test(u))).map(u=>` <span class="tag warn">${esc(u)}</span>`).join('')}</td>
          <td class="l"><select data-j="${j}" style="max-width:220px">${kisiOpt(k)}</select>${k.yol==='tc'?'<br><span class="tag warn">İsim tutmadı, TC ile eşleşti</span>':''}${k.yol==='elle'?'<br><span class="tag">elle seçildi</span>':''}${k.tekrar?'<br><span class="tag warn">Bu kişi başka satırda zaten var, atlanır</span>':''}</td>
          <td class="l">${k.pid?`<select data-h="${j}" style="max-width:150px">${S.subeIds.map(x=>`<option value="${esc(x)}" ${x===k.hedef?'selected':''}>${esc(subeAdi(x))}</option>`).join('')}</select>${pb?'<br><span class="tag warn">paket başı: en çok çalıştığı şube mi?</span>':''}`:''}</td>
-         <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin"></td></tr>`;};
+         <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin">${yuksekTag(k.netYazi)}</td></tr>`;};
      const hs={};es.forEach(k=>{hs[k.hedef]=(hs[k.hedef]||0)+1;});
      byId('tbOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
        <div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th class="l">Yazılacak şube</th><th>Net ödenen</th></tr></thead><tbody>${[...yok,...satirlar.filter(k=>k.pid&&k.tekrar),...es].map(satir).join('')}</tbody></table></div>
@@ -2504,7 +2507,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
      const be=byId('tbEk');if(be)be.onclick=()=>byId('tbF').click();
      byId('tbOut').querySelectorAll('select[data-j]').forEach(x=>x.onchange=()=>{const k=satirlar[+x.dataset.j];k.pid=x.value||null;k.yol=x.value?'elle':null;k.hedef=k.pid?hedefVars(k.pid):'';ciz();});
      byId('tbOut').querySelectorAll('select[data-h]').forEach(x=>x.onchange=()=>{satirlar[+x.dataset.h].hedef=x.value;ciz();});
-     byId('tbOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);i.value=bos?'':fmt(sayi(i.value));});
+     byId('tbOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);ciz();});
      const ok=byId('tbOk');if(ok)ok.onclick=()=>{const t=es.filter(k=>k.netYazi!=null);if(t.length<es.length)toast(`${es.length-t.length} kişinin net tutarı boş, atlandı.`);isle(t,ok);};};
    const isle=async(es,btn)=>{if(!es.length){toast('İşlenecek kişi yok.');return;}btn.disabled=true;btn.textContent='İşleniyor…';
      const sonGun=ymd(new Date(+ak.slice(0,4),+ak.slice(5),0));const kim=S.me.adSoyad||S.me.kullaniciAdi||'';const z=new Date().toISOString();
