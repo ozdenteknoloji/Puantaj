@@ -465,3 +465,18 @@ table.vg2 td.rn.rsel{background:var(--accent-ink);color:#fff}
 .vmenu button{display:flex;justify-content:space-between;gap:16px;width:100%;text-align:left;padding:7px 9px;border-radius:7px;font:inherit;font-weight:600;color:var(--ink);background:none;border:0;cursor:pointer}
 .vmenu button:hover{background:var(--soft)}.vmenu button span{color:var(--mut);font-weight:500;font-size:11.5px}
 .vmenu button.tehlike{color:var(--bad)}
+/* v196: Excel'deki "bölmeleri dondur" gibi: uzun tablolarda başlık satırı (ve personelde ad sütunu) sabit kalır. Tablo kendi içinde kayar. */
+.tbl-wrap.dondur{overflow:auto;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overscroll-behavior:contain}
+.tbl-wrap.dondur table.pt thead th{position:sticky;top:0;z-index:4;box-shadow:inset 0 -1px 0 var(--line)}
+.tbl-wrap.dondur table.bl thead th.l{left:0;z-index:5}
+.tbl-wrap.dondur table.bl td.nmc{z-index:2}
+@media (max-width:700px){.tbl-wrap.dondur{max-height:calc(100vh - 170px);max-height:calc(100dvh - 170px)}}
+/* Çizelge: gün başlıkları sayfa kayarken üstte kalır */
+.grid>.dh{position:sticky;top:0;z-index:6;background:var(--bg);padding-top:6px}
+/* IBAN listesinden personele git */
+.ibr.git{cursor:pointer}.ibr.git:hover{background:var(--soft)}.ibr.git.eks:hover{filter:brightness(.97);background:var(--bad-bg)}
+.banner.ibdon{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+table.bl tr.odak td{background:var(--ok-bg)!important;transition:background .6s}
+.ibk-f{flex-wrap:wrap}
+.ibk-s.pas{color:var(--line);background:var(--soft)}
+.ibr.pas .n b,.ibr.pas .n i,.ibr.pas .v{color:var(--mut);opacity:.75}
