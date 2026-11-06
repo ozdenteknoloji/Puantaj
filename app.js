@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=196;
+const APP_SURUM=197;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1129,29 +1129,29 @@ function ibanListe(ak){ibanOzetYukle(ak);const g=[],u=[],n=[];S.personel.forEach
   const o=(a,b)=>String(subeAdi(maasSubesi(a))).localeCompare(String(subeAdi(maasSubesi(b))),'tr')||String(a.ad).localeCompare(String(b.ad),'tr');return{g:g.sort(o),u:u.sort(o),n:n.sort(o)};}
 function ibanMetin(ak){const L=ibanListe(ak);const s=p=>`${adBuyuk(p.ad)} | ${p.iban||'IBAN yok'}`;
   let t=`${ayAdi(ak)} · yeni girenler (${L.g.length})\n`+L.g.map(s).join('\n');if(L.u.length)t+=`\n\nIBAN'ı güncellenenler (${L.u.length})\n`+L.u.map(s).join('\n');return t;}
-// IBAN listesi fotoğrafı (WhatsApp'a atılır): yeni girenler, IBAN'ı güncellenenler; en altta soluk renkle SGK günü 0 olanlar. TC yok.
-function ibanGorseli(ak){const L=ibanListe(ak);const W=900,P=28,RH=58,SH=40,sc=2;const F='Figtree, Arial, sans-serif',M='ui-monospace, Menlo, Consolas, monospace';
-  const bol=[{ad:`Yeni girenler · ${L.g.length}`,sag:'SGK girişi bu ay',r:L.g.map(p=>({p,alt:'giriş '+trTarih(p.giris)}))}];
-  if(L.u.length)bol.push({ad:`IBAN'ı güncellenenler · ${L.u.length}`,sag:'Bu ay değişen',r:L.u.map(p=>({p,alt:'değişiklik '+trTarih(ibanDegisim(p))}))});
-  if(L.n.length)bol.push({ad:`IBAN gerekmeyenler · ${L.n.length}`,sag:'SGK günü 0',pas:true,r:L.n.map(p=>({p,alt:'giriş '+trTarih(p.giris)}))});
-  const H=P+70+bol.reduce((t,b)=>t+SH+Math.max(b.r.length,1)*RH,0)+P+26;
+// IBAN listesi fotoğrafı (WhatsApp'a atılır, patron IBAN'ı fotoğraftan kopyalar): büyük yazı, IBAN boşluksuz;
+// yeni girenler, IBAN'ı güncellenenler; en altta soluk renkle SGK günü 0 olanlar. TC yok.
+function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH=80,sc=2;const F='Figtree, Arial, sans-serif',M='ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace';
+  const bol=[{ad:`Yeni girenler · ${L.g.length}`,sag:'IBAN',r:L.g.map(p=>({p,alt:'giriş '+trTarih(p.giris)}))}];
+  if(L.u.length)bol.push({ad:`IBAN'ı değişenler · ${L.u.length}`,sag:'Yeni IBAN',r:L.u.map(p=>({p,alt:'değişiklik '+trTarih(ibanDegisim(p))}))});
+  if(L.n.length)bol.push({ad:`IBAN gerekmeyenler · ${L.n.length}`,sag:'SGK günü 0',pas:true,r:L.n.map(p=>({p}))});
+  const H=P+130+bol.reduce((t,b)=>t+SH+Math.max(b.r.length,1)*(b.pas?NH:RH),0)+P+30;
   const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;const c=cv.getContext('2d');c.scale(sc,sc);
   c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='middle';
-  c.fillStyle='#1f3a6b';c.font=`800 24px ${F}`;c.fillText('İşverene IBAN listesi',P,P+16);
-  c.fillStyle='#6b7280';c.font=`600 15px ${F}`;c.fillText(`${ayAdi(ak)} · tüm şubeler`,P,P+46);
-  const eks=[...L.g,...L.u].filter(p=>!p.iban).length;if(eks){c.textAlign='right';c.fillStyle='#b42318';c.font=`700 15px ${F}`;c.fillText(`${eks} kişinin IBAN'ı eksik`,W-P,P+16);c.textAlign='left';}
-  let y=P+70;
-  bol.forEach(b=>{c.fillStyle=b.pas?'#f4f4f5':'#eef1f6';c.fillRect(0,y,W,SH);c.font=`800 13px ${F}`;c.fillStyle=b.pas?'#9ca3af':'#4b5563';c.fillText(b.ad.toLocaleUpperCase('tr-TR'),P,y+SH/2);c.textAlign='right';c.fillText(b.sag.toLocaleUpperCase('tr-TR'),W-P,y+SH/2);c.textAlign='left';y+=SH;
-    if(!b.r.length){c.fillStyle='#6b7280';c.font=`500 14px ${F}`;c.fillText('Kimse yok.',P,y+RH/2);y+=RH;return;}
-    b.r.forEach(({p,alt})=>{const ib=p.iban||'';if(!b.pas&&!ib){c.fillStyle='#fdecea';c.fillRect(0,y,W,RH);}
-      c.fillStyle='#eceff3';c.fillRect(0,y+RH-1,W,1);
-      c.fillStyle=b.pas?'#9ca3af':'#111827';c.font=`700 16px ${F}`;c.fillText(adBuyuk(p.ad),P,y+20);
-      c.fillStyle=b.pas?'#b8bcc4':'#6b7280';c.font=`500 13px ${F}`;c.fillText([gorevTahmin(p)||'',subeAdi(maasSubesi(p)),alt].filter(Boolean).join(' · '),P,y+40);
-      c.textAlign='right';if(b.pas){c.fillStyle='#9ca3af';c.font=`600 14px ${F}`;c.fillText('SGK günü 0 · IBAN gerekmiyor',W-P,y+RH/2);}
-      else if(ib){c.fillStyle='#111827';c.font=`700 16px ${M}`;c.fillText(ib,W-P,y+RH/2);}
-      else{c.fillStyle='#b42318';c.font=`700 15px ${F}`;c.fillText('IBAN girilmemiş',W-P,y+RH/2);}
+  c.fillStyle='#1f3a6b';c.font=`800 42px ${F}`;c.fillText(`${AY[+ak.slice(5)-1]} Ayı İşe Girenlerin IBAN Listesi`,P,P+30);
+  c.fillStyle='#6b7280';c.font=`600 26px ${F}`;c.fillText(`${ayAdi(ak)} · tüm şubeler`,P,P+80);
+  const eks=[...L.g,...L.u].filter(p=>!p.iban).length;if(eks){c.textAlign='right';c.fillStyle='#b42318';c.font=`800 28px ${F}`;c.fillText(`${eks} kişinin IBAN'ı eksik`,W-P,P+30);c.textAlign='left';}
+  let y=P+130;
+  bol.forEach(b=>{c.fillStyle=b.pas?'#f4f4f5':'#eef1f6';c.fillRect(0,y,W,SH);c.font=`800 22px ${F}`;c.fillStyle=b.pas?'#9ca3af':'#4b5563';c.fillText(b.ad.toLocaleUpperCase('tr-TR'),P,y+SH/2);c.textAlign='right';c.fillText(b.sag.toLocaleUpperCase('tr-TR'),W-P,y+SH/2);c.textAlign='left';y+=SH;
+    if(!b.r.length){c.fillStyle='#6b7280';c.font=`600 24px ${F}`;c.fillText('Kimse yok.',P,y+RH/2);y+=RH;return;}
+    b.r.forEach(({p,alt})=>{const ib=p.iban||'';
+      if(b.pas){c.fillStyle='#9ca3af';c.font=`700 28px ${F}`;c.fillText(adBuyuk(p.ad),P,y+NH/2);c.textAlign='right';c.font=`600 24px ${F}`;c.fillText('IBAN gerekmiyor',W-P,y+NH/2);c.textAlign='left';y+=NH;return;}
+      if(!ib){c.fillStyle='#fdecea';c.fillRect(0,y,W,RH);}c.fillStyle='#e5e7eb';c.fillRect(0,y+RH-1,W,1);
+      c.fillStyle='#111827';c.font=`800 32px ${F}`;c.fillText(adBuyuk(p.ad),P,y+38);
+      c.fillStyle='#6b7280';c.font=`600 22px ${F}`;c.fillText([subeAdi(maasSubesi(p)),gorevTahmin(p)||'',alt].filter(Boolean).join(' · '),P,y+76);
+      c.textAlign='right';if(ib){c.fillStyle='#0b1220';c.font=`700 38px ${M}`;c.fillText(ib,W-P,y+RH/2);}else{c.fillStyle='#b42318';c.font=`800 34px ${F}`;c.fillText('IBAN girilmemiş',W-P,y+RH/2);}
       c.textAlign='left';y+=RH;});});
-  c.fillStyle='#9ca3af';c.font=`500 12px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
+  c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
 async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);const ad=`IBAN-${ak}.png`;const baslik=`${ayAdi(ak)} IBAN listesi`;
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));if(!bl){toast('Fotoğraf hazırlanamadı.');return;}const f=new File([bl],ad,{type:'image/png'});
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
@@ -1162,7 +1162,7 @@ async function ibanExcel(ak){const L=ibanListe(ak);let X;try{X=await xlsxLib();}
   const ws=X.utils.aoa_to_sheet([['Ad soyad','TC kimlik no','IBAN','Şube','Durum','SGK giriş'],...L.g.map(p=>sat(p,'Yeni giriş')),...L.u.map(p=>sat(p,'IBAN güncellendi'))]);
   ws['!cols']=[{wch:28},{wch:14},{wch:30},{wch:18},{wch:18},{wch:12}];const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,'IBAN');X.writeFile(wb,`IBAN-${ak}.xlsx`);}
 function ibanKutusu(){if(!puantajYetki())return'';const bu=ayKey(today());const ak=ibanAyi();const acik=true;const L=ibanListe(ak);const hepsi=[...L.g,...L.u];const eks=hepsi.filter(p=>!p.iban).length;
-  let h=`<div class="ibk"><div class="ibk-h" id="ibanBas"><b>İşverene IBAN listesi</b><span class="n">${hepsi.length}</span>${eks?`<span class="chip bad">${eks} IBAN eksik</span>`:''}</div>`;
+  let h=`<div class="ibk"><div class="ibk-h" id="ibanBas"><b>İşe girenlerin IBAN listesi</b><span class="n">${hepsi.length}</span>${eks?`<span class="chip bad">${eks} IBAN eksik</span>`:''}</div>`;
   if(acik){tcYukle(hepsi);const aylar=[...new Set([ak,...[0,1,2,3,4,5].map(i=>ayKaydir(bu,-i))])].sort().reverse();
     const satir=(p,gun,guncel)=>{const ib=p.iban||'';return `<div class="ibr git ${ib?'':'eks'}" data-ibgit="${esc(p.id)}" title="Personel listesinde IBAN alanına git"><div class="n"><b>${esc(adBuyuk(p.ad))}</b><i>${esc(gorevTahmin(p)||'')} · ${esc(subeAdi(maasSubesi(p)))} · ${gun}</i></div><div class="v"><span class="mono">${ib?esc(ib):'IBAN girilmemiş · girmek için dokunun ›'}</span>${guncel&&p.ibanEski?`<span>eski: ${esc(p.ibanEski)}</span>`:''}</div></div>`;};
     h+=`<div class="ibk-t"><label>Ay <select id="ibanAy">${aylar.map(a=>`<option value="${a}" ${a===ak?'selected':''}>${ayAdi(a)}</option>`).join('')}</select></label><span>Tüm şubeler tek listede</span></div>
