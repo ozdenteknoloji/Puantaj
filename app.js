@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=209;
+const APP_SURUM=211;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1794,6 +1794,7 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
     h+=`</tbody></table></div><div class="legend yardim"><span><i style="background:var(--yel)"></i>Çıkış yapan</span><span>Gün sayısı = tam ay 30; rapor/ücretsiz izin varsa ayın takvim günü − rapor − ücretsiz izin, en çok 30 (ay ortasında giriş/çıkışta çalışılan takvim günü); part çalışanlarda gün sayısı = part gün</span></div>
     ${gizli.length?`<p class="note yardim"><b>Muhasebede gösterilmeyen ${gizli.length} kişi</b> (SGK'sı başka şubede, SGK'sı yok ya da bu ay SGK girişi yok): ${gizli.map(x=>esc(x.sol.ad)).join(', ')}. Bu kişiler sadece Ödemeler tarafında.</p>`:''}
     <p class="note yardim">Maaş, rapor ve izinler kişinin SGK şubesinde. Fazla mesai muhasebeye gitmez; Ödemeler tarafında, çalıştığı her şubede ayrı hesaplanır. Diğer şubelerdeki izin günleri o şubeler ayı kapattıkça eklenir.</p>`;
+    h+=`<div class="actions" style="margin-top:12px"><button class="btn grow" id="pdfB">Muhasebe çıktısı · PDF / fotoğraf / WhatsApp</button></div>`;
 }
   else if(S.pt.gorunum==='veri')h+=veriGirisiHtml(V);
   else{
@@ -1836,7 +1837,7 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
   if(isIsveren()&&durum==='kesin'){const sonraki=(S.aylar[ayKaydir(ak,1)]||{}).durum==='kesin';
     h+=`<div class="row2" style="margin-top:10px">${sonraki?`<p class="note">${ayAdi(ayKaydir(ak,1))} kesin kapalı olduğu için bu ay açılamaz.</p>`:'<button class="btn grow" id="kesinAcB">Kesin kapanışı aç</button>'}</div>`;}
   view(h,()=>{navBagla();document.querySelectorAll('#ptSeg button').forEach(b=>b.onclick=()=>{if(S.pt.gorunum==='veri'&&b.dataset.v!=='veri')veriBosTemizle();S.pt.gorunum=b.dataset.v;S.pt.vsel=null;render();});
-    {const pm=byId('ptMenu');if(pm)pm.onclick=e=>noktaMenu(e.currentTarget,fmMenu+`<button data-m="pdf"><span>⤴</span>Muhasebe çıktısı · PDF / WhatsApp</button>`,m=>{fmSeciciBagla(ak);m.querySelector('[data-m=pdf]').onclick=()=>{noktaKapat();muhasebeCiktisi(V);};});}const opb=byId('odPayB');if(opb)opb.onclick=()=>odemeCiktisi(V);const bb=byId('bordroB');if(bb)bb.onclick=()=>bordroPanel(V);
+    {const pm=byId('ptMenu');if(pm)pm.onclick=e=>noktaMenu(e.currentTarget,fmMenu,()=>fmSeciciBagla(ak));}const pb=byId('pdfB');if(pb)pb.onclick=()=>muhasebeCiktisi(V);const opb=byId('odPayB');if(opb)opb.onclick=()=>odemeCiktisi(V);const bb=byId('bordroB');if(bb)bb.onclick=()=>bordroPanel(V);
     if(S.pt._kf&&S.pt.gorunum!=='veri'){kfBagla(S.pt._kf.t,S.pt._kf.cols,S.pt._kf.rows);const kh=byId('kfHepsi');if(kh)kh.onclick=()=>{kfDurum(S.pt._kf.t).f={};render();};}
     if(S.pt.gorunum==='veri'){if(!V.kesin)veriGirisiBagla(V);}else if(!V.kesin){document.querySelectorAll('tr[data-pid]').forEach(r=>r.onclick=()=>odemePanel(r.dataset.pid));document.querySelectorAll('tr[data-mpid]').forEach(r=>r.onclick=()=>gunPanel(r.dataset.mpid));}
     document.querySelectorAll('[data-bk]').forEach(c=>c.onchange=()=>{if(kilitEngel()||kesinEngel()){c.checked=!c.checked;return;}const k=c.dataset.bk;const sid=S.subeId;S.pt.doc={...(S.pt.doc||{}),bkontrol:{...((S.pt.doc||{}).bkontrol||{}),[k]:c.checked}};
