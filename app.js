@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=212;
+const APP_SURUM=213;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1820,11 +1820,11 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
   const bk=(V.D&&V.D.bkontrol)||{};const BK=[];V.satir.filter(x=>muhasebedeMi(x.sol)).forEach(({pid,sol})=>{const ic=t=>t&&t.slice(0,7)===ak;
     // Her satır: tam ad, ne olduğu (etiket) ve değer; aynı kişinin birden çok SGK kaydı varsa hangi kayıt olduğu (SGK şubesi) görünsün.
     const e=(k,tur,deg)=>BK.push({k:k+pid,ad:adBuyuk(sol.ad),tur,deg,sgk:sol.sgkSube||'',gorev:muhGorev(sol)});
-    if(sol.rapor)e('r_','Rapor',`${sol.rapor} gün`);if(sol.yillik)e('y_','Yıllık izin',`${sol.yillik} gün`);if(sol.ucretsiz)e('u_','Ücretsiz izin',`${sol.ucretsiz} gün`);if(sol.bayram)e('b_','Bayram',`${fmt(sol.bayram)} gün`);
+    if(sol.rapor)e('r_','Rapor',`${sol.rapor} gün`);if(sol.yillik)e('y_','Yıllık izin',`${sol.yillik} gün`);if(sol.ucretsiz)e('u_','Ücretsiz izin',`${sol.ucretsiz} gün`);if(sol.partGun)e('p_','Part gün',`${fmt(sol.partGun)} gün`);
     if(ic(sol.giris))e('g_','SGK giriş',trTarih(sol.giris));if(ic(sol.cikis))e('c_','SGK çıkış',trTarih(sol.cikis));});
   BK.sort((a,b)=>a.ad.localeCompare(b.ad,'tr')||a.tur.localeCompare(b.tur,'tr'));
   const bkEksik=BK.filter(x=>!bk[x.k]).length;
-  if(bolgeIs&&BK.length)h+=`<div class="sec">Onay öncesi kontrol · muhasebe grubundan teyit edin</div><div class="card kcard"><div class="kt ${bkEksik?'sari':'yesil'}"><div class="kth"><b>Rapor, izinler, bayram, SGK giriş ve çıkışlar · ${BK.length}</b><span>Her birini muhasebe WhatsApp grubundaki bilgiyle karşılaştırıp işaretleyin. Hepsi işaretlenmeden onaylanamaz.</span></div>
+  if(bolgeIs&&BK.length)h+=`<div class="sec">Onay öncesi kontrol · muhasebe grubundan teyit edin</div><div class="card kcard"><div class="kt ${bkEksik?'sari':'yesil'}"><div class="kth"><b>Rapor, izinler, part gün, SGK giriş ve çıkışlar · ${BK.length}</b><span>Her birini muhasebe WhatsApp grubundaki bilgiyle karşılaştırıp işaretleyin. Hepsi işaretlenmeden onaylanamaz.</span></div>
     <div class="bkl">${BK.map(x=>`<label class="${bk[x.k]?'on':''}"><input type="checkbox" data-bk="${esc(x.k)}" ${bk[x.k]?'checked':''}><span><b class="ad">${esc(x.ad)}</b><span class="nt"><em>${esc(x.tur)}</em> · ${esc(x.deg)}</span><span class="alt">${x.gorev?esc(x.gorev)+' · ':''}SGK: ${esc(x.sgk||'—')}</span></span></label>`).join('')}</div></div></div>`;
   const pOnc=ayKaydir(ak,-1);const pOnceki=(pOnc>=BASLANGIC_AY&&!onayli((S.aylar[pOnc]||{}).durum))||bkEksik>0;if(bolgeIs&&pOnceki)h+=`<p class="note" style="color:var(--bad);font-weight:600">${pOnc>=BASLANGIC_AY&&!onayli((S.aylar[pOnc]||{}).durum)?`${ayAdi(pOnc)} puantajı onaylanmadan bu ay onaylanamaz.`:`Onay öncesi kontrolde ${bkEksik} madde işaretlenmedi.`}</p>`;
   if(!bolgeIs&&!onayli(durum))h+=`<p class="note">Bütün haftalar onaylanınca "Onayla ve kilitle" açılır. Bir haftada düzeltme gerekiyorsa Haftalar ekranından o haftayı şubeye geri gönderin.</p>`;
