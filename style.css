@@ -448,7 +448,7 @@ table.vg2 td.bi input[data-c="1"]{width:240px;min-width:0}
 table.vg2 td.bi input[data-c="3"]{width:112px;min-width:0}
 table.vg2 td.bi select{width:auto;max-width:none}
 table.vg2 td.bi input[data-c="4"]{width:100%;min-width:180px}
-table.vg2 th:nth-child(5),table.vg2 td:nth-child(5){width:100%}
+table.vg2 th:nth-child(6),table.vg2 td:nth-child(6){width:100%}
 table.vg2 td.dur .chip{font-weight:700}
 /* Veri girişi: satır numarası sütunu, seçim çubuğu */
 table.vg2 th.rn,table.vg2 td.rn{width:34px;min-width:34px;padding:0 4px;text-align:center;color:var(--mut);font-size:11.5px;font-weight:700;background:var(--soft);-webkit-user-select:none;user-select:none}
