@@ -17,7 +17,6 @@ const KOD_SIRA=['HT','R','UI','YI','B'];// 'D' (Diğer) kaldırıldı: eski kay�
 const KOD_RENK={HT:['#1c1c1c','#ffffff'],R:['#c6e3ab','#24401a'],UI:['#1f3864','#ffffff'],YI:['#4f6a2a','#ffffff'],B:['#e9edf3','#33415a'],D:['#9aa3af','#ffffff'],CG:['#e01e1e','#ffffff']};
 const BOS_RENK='#fde2e2';
 const kodStil=k=>{const r=KOD_RENK[k];return r?`style="background:${r[0]};border-color:${r[0]};color:${r[1]}"`:'';};
-const SEKILLER=['Tam','Part','Esnaf kurye'];
 // Görev listesi: seçmeli, elle yazılmaz. Görev çizelgedeki bölümü ve esnaf durumunu belirler.
 const GOREVLER=[{ad:'R. Müdür',grup:'M'},{ad:'V. Müdür',grup:'M'},{ad:'Mutfak',grup:'K'},{ad:'Kurye',grup:'S'},{ad:'Esnaf Kurye',grup:'S',sekil:'Esnaf kurye'}];
 const SGK_YOK='-';
@@ -113,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=219;
+const APP_SURUM=220;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -315,7 +314,6 @@ function gorevGecmisYama(p,yeni,ak){if(!ak||ak<BASLANGIC_AY)ak=BASLANGIC_AY;cons
   if(!Object.keys(g0).length)g[BASLANGIC_AY]={gorev:p.gorev||'',grup:p.grup||'K',sekil:p.sekil||'Tam'};
   const once=gorevAyda({...p,gorevGecmis:g},ak);if(g[ak]&&once.gorev===yeni.gorev&&once.grup===yeni.grup&&once.sekil===yeni.sekil)return null;
   g[ak]={gorev:yeni.gorev,grup:yeni.grup,sekil:yeni.sekil};const son=g[Object.keys(g).sort().pop()];return{gorevGecmis:g,gorev:son.gorev,grup:son.grup,sekil:son.sekil};}
-function gorevGecmisYazi(p){const g=(p&&p.gorevGecmis)||{};return Object.keys(g).filter(k=>g[k]&&g[k].gorev).sort().map(k=>`${ayAdi(k)}: ${g[k].gorev}${g[k].sekil&&g[k].sekil!=='Tam'?' ('+g[k].sekil+')':''}`).join(' · ');}
 // Personel tablosundan görev / şekil düzeltmesi: geçmişi olan kişide bu aydan itibaren geçerli olur, geçmişi olmayanda eskisi gibi tüm aylar.
 function gorevSatirYama(p,body){if(!p.gorevGecmis||!Object.keys(p.gorevGecmis).length)return body;const y=gorevGecmisYama(p,{gorev:body.gorev??p.gorev,grup:body.grup??p.grup,sekil:body.sekil??p.sekil},ayKey(today()));return y||body;}
 function maasSubeGecmisYazi(p){const g=(p&&p.maasSubeGecmis)||{};return Object.keys(g).sort().map(k=>`${ayAdi(k)}: ${subeAdi(g[k])}`).join(' · ');}
@@ -711,7 +709,7 @@ function sekmeler(){if(!S.me)return[];const t=[['cizelge','Çizelge'],['personel
   if(puantajYetki())t.push(['puantaj','Puantaj']);if(isIsveren()||isBolge())t.push(['yonetim','Yönetim']);return t;}
 function renderTabs(){const t=sekmeler();if(!t.some(x=>x[0]===S.tab))S.tab='cizelge';const n=byId('tabs');n.hidden=false;
   byId('tabsIn').innerHTML=t.map(([k,a])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${a}</button>`).join('');
-  n.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(S.tab==='puantaj'&&S.pt.sube)veriBosTemizle();S.tab=b.dataset.tab;tryLS('pm.tab',S.tab);if(S.tab==='ay')S.ay=S.ay||gosterAy(S.hafta);if(S.tab==='puantaj'){S.pt.sube=null;S.tkGorunum='ay';if(S.subeId&&S.subeIds.includes(S.subeId)){S.ay=aktifAy('puantaj');puantajAc(S.subeId);}}render();window.scrollTo(0,0);});}
+  n.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(S.tab==='puantaj'&&S.pt.sube)veriBosTemizle();S.tab=b.dataset.tab;tryLS('pm.tab',S.tab);if(S.tab==='puantaj'){S.pt.sube=null;S.tkGorunum='ay';if(S.subeId&&S.subeIds.includes(S.subeId)){S.ay=aktifAy('puantaj');puantajAc(S.subeId);}}render();window.scrollTo(0,0);});}
 function noktaKapat(){const m=byId('noktaM');if(m)m.remove();const d=byId('noktaD');if(d)d.remove();}
 function noktaMenu(btn,html,bind){noktaKapat();const d=document.createElement('div');d.id='noktaD';d.className='nokta-dim';d.onclick=noktaKapat;const m=document.createElement('div');m.id='noktaM';m.className='nokta-menu';m.innerHTML=html;document.body.append(d,m);
   const r=btn.getBoundingClientRect();const w=m.offsetWidth;m.style.top=(r.bottom+window.scrollY+6)+'px';m.style.left=Math.max(8,Math.min(r.right+window.scrollX-w,window.scrollX+document.documentElement.clientWidth-w-8))+'px';bind&&bind(m);}
@@ -731,7 +729,7 @@ function render(){noktaKapat();otoHaftaOnayPlanla();if(S.tab!=='personel')S.iban
   if(!S.subeIds.length)return view(`<div class="empty-state"><b>Size atanmış şube yok</b>${isIsveren()?'Yönetim sekmesinden şube ekleyin.':'İşvereninizden şube ataması yapmasını isteyin.'}</div>`);
   if(!S.subeId)return;
   if(S.tab==='personel')return renderPersonel();
-  if(S.tab==='ay')return renderAy();
+  
   renderCizelge();}
 
 /* ================= Panel ve bildirim ================= */
@@ -944,15 +942,13 @@ function haftaIslemleri(wid){const hd=haftaDurumu(wid);let b='';if(weekDays(wid)
   return b?`<div class="actions hafta-is">${b}</div>`:'';}
 function haftaIslemBagla(wid){const on=(id,f)=>{const e=byId(id);if(e)e.onclick=f;};
   document.querySelectorAll('[data-gitw]').forEach(x=>x.onclick=()=>{S.hafta=x.dataset.gitw;SEL=null;render();window.scrollTo(0,0);});
-  on('hKap',()=>haftaKapatPanel(wid,puantajYetki()));on('hKapOn',()=>haftaKapatPanel(wid,true));on('hOn',()=>haftaOnayPanel(wid));on('hGeri',()=>haftaGeriPanel(wid));
+  on('hKap',()=>haftaKapatPanel(wid,puantajYetki()));
   on('hKilit',()=>haftaGeriPanel(wid));
   on('hListe',async()=>{const e=byId('hListe');if(!e.dataset.ok){e.dataset.ok='1';e.textContent='Emin misin? Tekrar dokun';return;}const sid=S.subeId;e.disabled=true;
     try{const s0=await getDoc(weekRef(wid,sid));const c=(s0.exists()&&s0.data().cells)||{};const eski=Array.isArray(s0.exists()&&s0.data().kadro)?s0.data().kadro:[];
       const ids=Object.keys(c).filter(pid=>Object.values(c[pid]||{}).some(v=>v));const sirali=[...eski.filter(x=>ids.includes(x)),...ids.filter(x=>!eski.includes(x))];
       if(!sirali.length){toast('Hücre bulunamadı, liste değişmedi.');e.disabled=false;return;}
       await setDoc(weekRef(wid,sid),{kadro:sirali},{merge:true});toast(`Liste geri kuruldu: ${sirali.length} kişi.`);}catch(x){console.error(x);toast('Geri kurulamadı.');}render();});}
-function haftaKayitPanel(wid,H=S.haftalar){const kay=((H[wid]||{}).kayit||[]).slice().sort((a,b)=>String(b.t).localeCompare(String(a.t)));
-  openSheet(`<h2>Hafta kaydı</h2><div class="sub">${esc(sube().ad)} · ${rangeLabel(wid)}</div><div class="card list">${kay.map(k=>`<div class="row"><div class="m"><b>${esc(k.i)}</b><span>${esc(k.ad||'')} · ${tarihSaat(k.t)}${k.not?' · "'+esc(k.not)+'"':''}</span></div></div>`).join('')||'<div class="note" style="padding:12px">Kayıt yok.</div>'}</div><div class="row2"><button class="btn grow" id="kyK">Kapat</button></div>`,()=>byId('kyK').onclick=closeSheet);}
 // Haftanın kontrolü: boş günler ve 7 gün teyidi kapatmayı engeller; eksi fazla mesai ve izinler bilgi için.
 function haftaKontrol(wid){const sb=haftaAyari(wid);const ds=weekDays(wid);const t7=(S.haftalar[wid]||{}).teyit7||{};const K={bos:[],yedi:[],eksi:[],izin:[],izinG:[],gc:[],yok:[]};
   cizelgeKisileri(wid).forEach(p=>{const L=CZ_ES[p.id]||[p];
@@ -1024,27 +1020,10 @@ async function otoHaftaOnay(){if(otoOnCalis||!S.me||!puantajYetki())return;const
   const L=Object.keys(S.haftalar).filter(w=>haftaDurumu(w)==='kapali'&&!weekDays(w).some(kesinAy)&&(OTO_ON_DENE[sid+w]||0)<2).sort();if(!L.length)return;
   otoOnCalis=true;try{for(const w of L){if(S.subeId!==sid||!sunucuHazir(sid))break;OTO_ON_DENE[sid+w]=(OTO_ON_DENE[sid+w]||0)+1;try{await haftaOnayla(w,true);}catch(e){console.error(e);}}}finally{otoOnCalis=false;}}
 let otoOnT=null;function otoHaftaOnayPlanla(){clearTimeout(otoOnT);otoOnT=setTimeout(()=>{otoHaftaOnay();},1200);}
-// Bölge müdürü / işveren onay verirken kontrol listesi: rapor ve izinler, giriş / çıkışlar, listede olmayanlar. Şube müdürünün işaretlediği maddeler ✓ ile görünür; madde yoksa doğrudan onaylanır.
-async function haftaOnayPanel(wid){await gunleriYukle(cizelgeKisileri(wid),haftaAylari(wid));const K=haftaKontrol(wid);
-  if(!K.izinG.length&&!K.gc.length&&!K.yok.length)return haftaOnayla(wid);
-  const sb=haftaAyari(wid);const tK=(S.haftalar[wid]||{}).teyitK||{};const ad=p=>esc(kisaAd(p.ad));const gunY=d=>`${d.getDate()} ${AYK[d.getMonth()]}`;
-  const chip=(x,t,tik)=>tik?`<label class="kchip ${tK[x.key]?'on':''}"><input type="checkbox" data-tko="${esc(x.key)}" ${tK[x.key]?'checked':''}> ${t}</label>`:`<span class="kchip ${tK[x.key]?'on':''}">${tK[x.key]?'✓ ':''}${t}</span>`;
-  const bolum=(L,baslik,not,fn,tik)=>L.length?`<div class="kt ${L.every(x=>tK[x.key])?'yesil':'sari'}"><div class="kth"><b>${baslik} · ${L.length}</b><span>${not}</span></div><div class="kti">${L.map(x=>chip(x,fn(x),tik)).join('')}</div></div>`:'';
-  const gcEksik=K.gc.filter(x=>!tK[x.key]).length;
-  let h=`<h2>Haftayı onayla</h2><div class="sub">${esc(sb.ad)} · ${rangeLabel(wid)}</div><p class="note" style="margin-top:0">Şube müdürünün işaretlediği maddeler ✓ ile görünür. Evrakı ve tarihleri kontrol edip onaylayın; yanlış varsa haftayı geri gönderebilirsiniz.</p>`;
-  h+=bolum(K.izinG,'Rapor ve izinler','Evrakı tamam mı kontrol edin.',x=>`${ad(x.p)} · ${x.gun.map(gunY).join(', ')} ${KOD[x.v].ad.toLocaleLowerCase('tr-TR')}`);
-  h+=bolum(K.gc,'Giriş ve çıkışlar','SGK tarihini ve çizelgede ilk / son günü muhasebe grubuyla kontrol edip işaretleyin; işaretlenmeden onaylanamaz.',x=>`${ad(x.p)} · ${x.tur.toLowerCase()} ${trTarih(x.t)}${x.sgk?' (SGK '+trTarih(x.sgk)+')':''} · çizelgede ${x.tur==='Giriş'?'ilk':'son'} gün ${x.cz?gunY(x.cz):'yok'}`,true);
-  h+=bolum(K.yok,'Haftanın listesinde olmayan çalışanlar','Personel listesinde aktif ama bu haftanın listesinde yoklar; kontrol edin.',x=>`${ad(x.p)} · listede yok`);
-  if(gcEksik)h+=`<p class="note" style="color:var(--bad);font-weight:600">Giriş / çıkışta ${gcEksik} madde işaretlenmeden onaylanamaz.</p>`;
-  h+=`<div class="row2"><button class="btn grow" id="hoNo">Vazgeç</button><button class="btn primary grow" id="hoOk" ${gcEksik?'disabled':''}>Onayla</button></div>`;
-  openSheet(h,sh=>{byId('hoNo').onclick=closeSheet;byId('hoOk').onclick=async()=>{const b=byId('hoOk');b.disabled=true;closeSheet();await haftaOnayla(wid);};
-    sh.querySelectorAll('[data-tko]').forEach(c=>c.onchange=()=>{const key=c.dataset.tko;const w0=S.haftalar[wid]||{};S.haftalar[wid]={...w0,teyitK:{...(w0.teyitK||{}),[key]:c.checked}};
-      const sid=S.subeId;sirayla(sid+'|'+wid,()=>{arka(setDoc(weekRef(wid,sid),{teyitK:{[key]:c.checked}},{merge:true}));});haftaOnayPanel(wid);});});}
 function haftaGeriPanel(wid){openSheet(`<h2>Kilidi aç</h2><div class="sub">${esc(sube().ad)} · ${rangeLabel(wid)}. Hafta şube müdürüne yeniden açılır; düzeltip tekrar kapatır.</div>
    <label class="field"><span>Şube müdürüne not (isteğe bağlı)</span><input id="hgNot" placeholder="örn. Cuma kapanış saatini düzelt"></label>
    <div class="row2"><button class="btn grow" id="hgNo">Vazgeç</button><button class="btn primary grow" id="hgOk">Kilidi aç</button></div>`,()=>{byId('hgNo').onclick=closeSheet;
    byId('hgOk').onclick=async()=>{const not=byId('hgNot').value.trim();closeSheet();await haftaAc(wid,not?'geri gönderdi':'kilidi açtı',not);toast(not?'Kilidi açıldı, not şube müdürüne iletildi.':'Haftanın kilidi açıldı, şube düzenleyebilir.');};});}
-async function haftaKilidiAc(wid){await haftaAc(wid,'kilidi açtı','');toast('Haftanın kilidi açıldı, şube düzenleyebilir.');}
 async function haftaAc(wid,islem,not){const sid=S.subeId;const t=new Date().toISOString();const ad=benAd();const b=writeBatch(db);
   b.set(weekRef(wid,sid),{hd:'acik',geriNot:not||'',kayit:arrayUnion({t,ad,i:islem,...(not?{not}:{})})},{merge:true});
   b.set(durumRef(sid),{w:{[wid]:deleteField()}},{merge:true});try{await b.commit();}catch(e){yazmaHatasi(e);}}
@@ -1061,14 +1040,6 @@ function ayinHaftalari(ak,sb=subeAyari(S.subeId,ak)){if(sb.fmDonem==='hafta'){co
 function ayHaftaDurumu(ak){const L=ayinHaftalari(ak).filter(w=>haftaDolu(w));const say={acik:0,kapali:0,onay:0};L.forEach(w=>say[haftaDurumu(w)]=(say[haftaDurumu(w)]||0)+1);return{L,say,tamam:L.length>0&&!say.acik};}
 
 /* ================= Personel (şirket geneli liste) ================= */
-// Kişiyi bir şubenin haftalık listesine ekler (o haftanın listesi yoksa önceki haftanın listesini temel alır).
-async function cizelgeyeKoy(sid,wid,pid){if(!erisimVar(sid))return;const ref=weekRef(wid,sid);
-  // Ekrandaki (belki eski ya da yüklenmemiş) liste değil, sunucudaki liste esas alınır; haftanın durumuna dokunulmaz.
-  try{let s0;try{s0=await getDoc(ref);}catch(e){if(String(e.code||'').includes('permission'))return;throw e;}// kapalı hafta: şube müdürü göremez, eklenmez
-    let taban=[];if(!s0.exists())for(let i=1;i<=8;i++){let q;try{q=await getDoc(weekRef(ymd(addDays(parse(wid),-7*i)),sid));}catch(e){continue;}if(q.exists()){const d=q.data();taban=Array.isArray(d.kadro)?d.kadro.slice():Object.keys(d.cells||{});break;}}
-    await runTransaction(db,async tr=>{const s=await tr.get(ref);const yeni=!s.exists();let kad;const hdYok=yeni||!('hd' in s.data());if(!yeni){const d=s.data();kad=Array.isArray(d.kadro)?d.kadro.slice():Object.keys(d.cells||{});}else kad=taban.slice();
-      if(kad.includes(pid))return;kad.push(pid);tr.set(ref,{hafta:wid,ay2:ayKey(addDays(parse(wid),6)),kadro:kad,...(hdYok?{hd:'acik'}:{})},{merge:true});});}
-  catch(e){console.error(e);toast(`${subeAdi(sid)} çizelgesine eklenemedi (${rangeLabel(wid)}). İnternet gelince kişiyi "+ ekle" ile ekleyin.`);}}
 /* ---- Diğer çalıştığı şubeler (çok şubeli çalışma): sadece işveren ve bölge müdürü (kendi şubeleri) ---- */
 function ekYetkiVar(){return isIsveren()||isBolge();}
 function ekYetki(sid){return isIsveren()||(isBolge()&&(S.me.subeler||[]).includes(sid));}
@@ -1111,7 +1082,6 @@ function bilgiCoz(f,raw){const s=String(raw??'').trim();if(!s)return{v:''};
   if(f.tip==='tc'){const d=s.replace(/\D/g,'');return tcGecerli(d)?{v:d}:{hata:'TC kimlik numarası hatalı.'};}
   return{v:s.replace(/\s+/g,' ').slice(0,80)};}
 function bilgiGoster(f,v){v=v||'';if(f.tip==='tel'&&/^0\d{10}$/.test(v))return`${v.slice(0,4)} ${v.slice(4,7)} ${v.slice(7,9)} ${v.slice(9)}`;return v;}
-function excelBilgi(o){const out={};BILGI.forEach(f=>{if(o[f.k]==null)return;const r=bilgiCoz(f,typeof o[f.k]==='number'?String(o[f.k]):o[f.k]);if(r.v)out[f.k]=r.v;});return out;}
 // TC sadece bölge müdürü / işveren: maaslar/{SGK şubesi}.tc
 async function tcYukle(list){if(!puantajYetki())return;S.tcler=S.tcler||{};const need=[...new Set(list.map(maasSubesi))].filter(s=>s&&!(s in S.tcler)&&(isIsveren()||(S.me.subeler||[]).includes(s)));
   if(!need.length)return;await Promise.all(need.map(async s=>{try{const d=await getDoc(doc(db,'maaslar',s));S.tcler[s]=(d.exists()&&d.data().tc)||{};}catch(e){S.tcler[s]=null;}}));render();}
@@ -1313,37 +1283,6 @@ function renderBilgiListesi(){const T=byId('blTbl');const gor=S.pgor||'calisma';
           cells.forEach((v,j)=>{const x=inp(r,c0+j);if(!x||x.disabled)return;x.value=v.trim();if(kaydet(x,true))n++;else bad++;});});
         toast(`${n} hücre yapıştırıldı${bad?`, ${bad} hücre hatalı (kırmızı)`:''}${yok?`, ${yok} satır eşleşmedi`:''}.`);};});});}
 
-// Excel'den personel listesi yapıştırma: SGK ŞUBE · ÇALIŞMA ŞEKLİ · ADI SOYADI · GÖREV · GİRİŞ · ÇIKIŞ (başlık varsa sütunlar ona göre bulunur)
-function gorevCoz(x){const a=ascii(x).replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();if(!a)return null;if(/esnaf/.test(a))return gorevBul('Esnaf Kurye');if(/surucu|kurye|motor/.test(a))return gorevBul('Kurye');
-  if(/^r\b|restoran|^mudur$|^r mudur/.test(a))return gorevBul('R. Müdür');if(/^v\b|vardiya|^v mudur|yardimci/.test(a))return gorevBul('V. Müdür');if(/mutfak|ekip|personel|ekip uyesi/.test(a))return gorevBul('Mutfak');return null;}
-function personelYapistirPanel(){const sid=S.subeId;
-  openSheet(`<h2>Excel'den personel ekle</h2><div class="sub">${esc(sube().ad)} listesine eklenir. Sütunlar: SGK ŞUBE · ÇALIŞMA ŞEKLİ · ADI SOYADI · GÖREV · GİRİŞ TARİHİ · ÇIKIŞ TARİHİ. Başlık satırını da kopyalarsanız sütun sırası önemli değil.</div>
-   <label class="field"><span>Excel'den kopyaladığınız satırlar</span><textarea id="piT" rows="5" placeholder="Excel'de satırları seçip Ctrl+C, buraya Ctrl+V"></textarea></label><div id="piOut"></div>`,()=>{
-   const T=byId('piT');let sonuc=[];
-   const coz=()=>{let L=T.value.replace(/\r/g,'').split('\n').filter(x=>x.trim()).map(x=>x.split('\t').map(y=>y.trim()));if(!L.length){byId('piOut').innerHTML='';return;}
-     let sira={sgk:0,sekil:1,ad:2,gorev:3,giris:4,cikis:5};const bas=L[0].map(x=>ascii(x));
-     if(bas.some(x=>/adi|soyad/.test(x))){sira={};bas.forEach((x,j)=>{if(/sgk/.test(x))sira.sgk=j;else if(/calisma|sekil/.test(x))sira.sekil=j;else if(/adi|soyad|isim/.test(x))sira.ad=j;else if(/gorev/.test(x))sira.gorev=j;else if(/giris/.test(x))sira.giris=j;else if(/cikis/.test(x))sira.cikis=j;});L=L.slice(1);}
-     const subeAd={};tumSubeler().forEach(([id,a])=>subeAd[isimAnahtar(a)]=id);const mevcut=subePersoneli(sid);const gorulen={};
-     sonuc=L.map(r=>{const al=k=>sira[k]!=null?(r[sira[k]]||''):'';const ad=adBuyuk(al('ad'));const o={ad,hata:'',uyari:''};if(!ad){o.hata='İsim yok';return o;}
-       const sg=al('sgk');o.sgk=sg?subeAd[isimAnahtar(sg)]:SGK_YOK;if(sg&&!o.sgk)o.hata=`SGK şubesi bulunamadı: ${sg}`;
-       const g=gorevCoz(al('gorev'));o.gorev=g;if(!g)o.hata=o.hata||`Görev tanınmadı: ${al('gorev')||'boş'}`;
-       const sk=ascii(al('sekil'));o.sekil=g&&g.sekil?g.sekil:(/part/.test(sk)?'Part':'Tam');
-       o.giris=al('giris')?trTarihCoz(al('giris')):'';o.cikis=al('cikis')?trTarihCoz(al('cikis')):'';if(al('giris')&&!o.giris)o.hata=o.hata||'Giriş tarihi okunamadı';if(al('cikis')&&!o.cikis)o.hata=o.hata||'Çıkış tarihi okunamadı';
-       if(o.giris&&o.cikis&&o.cikis<o.giris)o.hata=o.hata||'Çıkış girişten önce';
-       const k=isimAnahtar(ad);const var_=mevcut.find(p=>isimAnahtar(p.ad)===k);if(var_){o.hata=o.hata||'Listede zaten var';}
-       if(gorulen[k]){o.uyari='Aynı isim bu yapıştırmada iki kez var';}gorulen[k]=1;
-       if(!o.hata&&o.sgk&&o.sgk!==SGK_YOK){const c=S.personel.find(x=>isimAnahtar(x.ad)===k&&x.sgkSube&&x.sgkSube!==SGK_YOK&&x.sgkSube!==o.sgk&&(!x.cikis||x.cikis>=ymd(today())));if(c)o.hata=`Zaten ${subeAdi(c.sgkSube)} şubesinde SGK'lı`;}
-       o.sec=!o.hata&&!o.uyari;return o;});
-     const iyi=sonuc.filter(x=>!x.hata).length;
-     byId('piOut').innerHTML=`<div class="tbl-wrap" style="max-height:46vh;overflow:auto"><table class="pt"><thead><tr><th></th><th class="l">Ad soyad</th><th>Görev</th><th>Şekil</th><th>SGK</th><th>Giriş</th><th>Çıkış</th><th class="l">Durum</th></tr></thead><tbody>${sonuc.map((o,j)=>`<tr class="${o.hata?'oto':''}"><td>${o.hata?'':`<input type="checkbox" data-j="${j}" ${o.sec?'checked':''}>`}</td><td class="l"><b>${esc(o.ad)}</b></td><td>${o.gorev?esc(o.gorev.ad):''}</td><td>${esc(o.sekil||'')}</td><td>${o.sgk===SGK_YOK?'Boş':o.sgk?esc(subeAdi(o.sgk)):''}</td><td>${trTarih(o.giris)}</td><td>${trTarih(o.cikis)}</td><td class="l">${o.hata?`<span class="chip warn">${esc(o.hata)}</span>`:o.uyari?`<span class="chip warn">${esc(o.uyari)}</span>`:'<span class="chip ok">Eklenecek</span>'}</td></tr>`).join('')}</tbody></table></div>
-       <div class="row2"><button class="btn grow" id="piNo">Vazgeç</button><button class="btn primary grow" id="piOk" ${iyi?'':'disabled'}>Seçilenleri ekle</button></div>`;
-     byId('piNo').onclick=closeSheet;byId('piOut').querySelectorAll('input[data-j]').forEach(c=>c.onchange=()=>{sonuc[+c.dataset.j].sec=c.checked;});
-     byId('piOk').onclick=async()=>{const L2=sonuc.filter(o=>!o.hata&&o.sec);if(!L2.length){toast('Seçili kişi yok.');return;}const b=writeBatch(db);const yeni=[];const td=ymd(today());
-       L2.forEach(o=>{const pid=slug(o.ad)+'-'+Math.random().toString(36).slice(2,6);const body={ad:o.ad,gorev:o.gorev.ad,grup:o.gorev.grup,sekil:o.sekil,giris:o.giris||'',cikis:o.cikis||'',sgkSube:o.sgk,anaSube:sid};b.set(doc(db,'personel',pid),body);yeni.push({id:pid,...body});});
-       try{await b.commit();yeni.forEach(p=>{if(!S.personel.some(x=>x.id===p.id))S.personel.push(p);});
-         const hafta=mondayOf(today());const aktif=yeni.filter(p=>(!p.cikis||p.cikis>=td)&&(!p.giris||p.giris<=ymd(addDays(parse(hafta),6))));/* çizelgeye otomatik eklenmez */void aktif;void hafta;
-         closeSheet();toast(`${yeni.length} personel eklendi${aktif.length?`, ${aktif.length} kişi bu haftanın çizelgesine kondu`:''}.`);render();}catch(e){yazmaHatasi(e);}};};
-   T.oninput=coz;T.focus();});}
 // Kişinin çalıştığı şube ya da SGK şubesi değişince eski şube "görünür şubeler"e ve o şubenin ek personel listesine eklenir:
 // eski şubenin geçmiş haftaları, özetleri ve puantajı kişiyi kaybetmez (kişi yeni haftalara önerilmez).
 function eskiSubeYama(p0,body){const once=[p0.anaSube,p0.sgkSube].filter(x=>x&&x!==SGK_YOK);const sonra=new Set([body.anaSube??p0.anaSube,body.sgkSube??p0.sgkSube,...ekSubeleri({...p0,...body})].filter(x=>x&&x!==SGK_YOK));
@@ -1356,21 +1295,9 @@ async function personelKaydiVar(p){for(const sid of kisiSubeleri(p)){const q=awa
     if(q.docs.some(d=>{const x=d.data()||{};return (Array.isArray(x.kadro)&&x.kadro.includes(p.id))||Object.values((x.cells||{})[p.id]||{}).some(v=>v);}))return subeAdi(sid)||sid;}
   return null;}
 function personelYazabilir(p){const m=S.me.subeler||[];return isIsveren()||!p.anaSube||m.includes(p.anaSube)||m.includes(p.sgkSube);}
-function erisimVar(sid){return isIsveren()||(S.me.subeler||[]).includes(sid);}
 // Şubenin listesi: o şubede çalışanlar + SGK'sı o şubede olanlar (başka şubede çalışsa da).
 function subePersoneli(sid=S.subeId){return S.personel.filter(p=>subedeAktif(p,sid));}
-function personelMod(){return `<div class="seg" id="pMod" style="margin-bottom:10px"><button data-v="kart" class="${S.plist?'':'on'}">Kartlar</button><button data-v="liste" class="${S.plist?'on':''}">Bilgi listesi</button></div>`;}
-function personelModBagla(){document.querySelectorAll('#pMod button').forEach(b=>b.onclick=()=>{S.plist=b.dataset.v==='liste';tryLS('pm.plist',S.plist?'1':'0');render();});}
 function renderPersonel(){return renderBilgiListesi();}
-function eskiKartListesi(){const list=sirala(subePersoneli());const td=ymd(today());
-  let h=personelMod()+`<div class="actions"><button class="btn primary grow" id="addP">Personel ekle</button></div><p class="note" style="margin-top:0">${esc(sube().ad)} personel listesi. SGK'sı bu şubede olup başka şubede çalışanlar da burada görünür.</p>`;
-  if(!list.length)return view(h+`<div class="empty-state"><b>Henüz personel yok</b>"Personel ekle" ile şubenin çalışanlarını girin.</div>`,()=>{personelModBagla();byId('addP').onclick=()=>personelPanel(null);});
-  const aktif=list.filter(p=>!p.cikis||p.cikis>=td),cikan=list.filter(p=>p.cikis&&p.cikis<td);
-  const row=p=>`<button class="row" data-id="${esc(p.id)}"><div class="av">${esc(bas(p.ad))}</div><div class="m"><b>${esc(p.ad)}</b><span>${esc(gorevTahmin(p)||'Görev seçilmemiş')}${p.sekil==='Part'?' · Part':''} · SGK: ${p.sgkSube===SGK_YOK?'yok':p.sgkSube?esc(subeAdi(p.sgkSube)):'<b style="color:var(--warn)">seçilmemiş</b>'}${p.anaSube&&p.anaSube!==S.subeId?' · çalıştığı: '+esc(subeAdi(p.anaSube)):''}${p.giris?' · giriş '+trTarih(p.giris):''}</span></div>
-    <div class="r">${p.cikis?`<span class="chip ${p.cikis<td?'mut':'warn'}">Çıkış ${trTarih(p.cikis)}</span>`:''}</div></button>`;
-  GRUP_SIRA.forEach(g=>{const l=aktif.filter(p=>(p.grup||'K')===g);if(l.length)h+=`<div class="sec">${GRUP[g]} · ${l.length}</div><div class="card list">${l.map(row).join('')}</div>`;});
-  if(cikan.length)h+=`<div class="sec">Çıkış yapanlar · ${cikan.length}</div><div class="card list">${cikan.map(row).join('')}</div>`;
-  view(h,()=>{personelModBagla();byId('addP').onclick=()=>personelPanel(null);document.querySelectorAll('.row[data-id]').forEach(b=>b.onclick=()=>personelPanel(b.dataset.id));});}
 // Kişi kartındaki geçmiş: aynı kişinin tüm kayıtları (çalışma dönemleri), görev geçmişi ve (yetkisi olana) maaş geçmişi.
 /* ================= Kişi kartı: Geçmiş + Ödemeler (sadece işveren ve bölge müdürü) =================
    Geçmiş: personelLog/{pid}.e (görev, şekil, şube, tarih, IBAN… kim / ne zaman) + odemeOzet/{şube}/aylar/{ay}.log[pid] (maaş tarafı)
@@ -1378,7 +1305,6 @@ function eskiKartListesi(){const list=sirala(subePersoneli());const td=ymd(today
    Ödemeler: odemeOzet/{şube}/aylar/{ay}.k[pid] — puantaj açıldıkça güncellenen ay sonu özeti.
    Bölge müdürü "görme başlangıcı" (kullanıcı.gorBas) ayından önceki maaş ve ödeme bilgisini görmez. */
 function gorBas(){return isIsveren()?'':((S.me&&S.me.gorBas)||'');}
-function ayGorulur(ak){const b=gorBas();return !b||!ak||ak>=b;}
 const ibanMaske=v=>v?'…'+String(v).slice(-4):'—';
 function gecmisKaydet(p,kayitlar){if(!p||!p.id||!kayitlar||!kayitlar.length||!S.user)return;const z=new Date().toISOString();const kim=benAd();const e={};
   kayitlar.forEach(k=>{e[Math.random().toString(36).slice(2,10)]={...k,z,kim,uid:S.user.uid};});
@@ -1546,68 +1472,6 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
        sirayla('p'+id,()=>{arka(deleteDoc(doc(db,'personel',id)));});closeSheet();toast(`${p.ad} silindi.`);}).catch(e=>{del.disabled=false;del.textContent='Personeli sil';yazmaHatasi(e);});};});}
 
 /* ================= Ay sonu (şube müdürü) ================= */
-// Ay sonu kontrol listesi
-const YUKSEK_FM=60;
-// Hiç açılmamış hafta (ör. sistem 3 Ağustos'ta başlarken 27 Tem – 2 Ağu): o haftaya düşen ay günleri de boş gün sayılır, doldurulmadan ay kapatılamaz.
-// Şube müdürü kapalı haftaları yüklemez; onlar haftaDurum'da kayıtlı olduğu için "hiç yok" sayılmaz.
-const haftaHicYok=wid=>!S.haftalar[wid]&&!((S.haftaDurum&&S.haftaDurum.w)||{})[wid];
-function ayKontrolleri(ak,R,sb,d){const[y,m]=ak.split('-').map(Number);const ilk=new Date(y,m-1,1),son=new Date(y,m,0);const teyit=d.teyit||{};
-  const K={bos:[],yedi:[],eksi:[],yuksek:[],izin:[],gc:[],yok:[]};
-  R.forEach(({p,a})=>{for(let dd=new Date(ilk);dd<=son;dd=addDays(dd,1)){if(!employed(p,dd))continue;const wid=mondayOf(dd),i=(dd.getDay()+6)%7;const v=cellOf(p.id,wid,i);if((v==null||v==='')&&(weekHasEntry(p.id,wid)||(!isEsnaf(p)&&haftaHicYok(wid)))&&bosSayilir(p,dd))K.bos.push({p,wid,d:new Date(dd)});}
-    for(let w=parse(mondayOf(ilk));w<=son;w=addDays(w,7)){const wid=ymd(w);const ds=weekDays(wid);if(ds.every((dd,i)=>employed(p,dd)&&isShift(cellOf(p.id,wid,i)))){const key=p.id+'_'+wid;const t7=(S.haftalar[wid]||{}).teyit7||{};K.yedi.push({p,wid,key,ok:!!t7[p.id]});}}
-    if(!a.part&&!a.esnaf){if(a.fm<0)K.eksi.push({p,a});if(a.fm>YUKSEK_FM)K.yuksek.push({p,a});}
-    const iz=['R','UI','YI','B'].filter(k=>a.kod[k]);if(iz.length)K.izin.push({p,a,iz});
-    const ic=t=>t&&t.slice(0,7)===ak;if(ic(p.giris)||ic(p.cikis)||ic(p.baslama))K.gc.push({p});});
-  const ids=ayKadroIds(ak);subePersoneli().filter(p=>p.anaSube===S.subeId&&aktifAyda(p,ak)&&!ids.has(p.id)&&!isEsnaf(p)).forEach(p=>K.yok.push({p}));
-  return K;}
-function ayKontrolHtml(K,ak,kilit,kon={}){const tik=(key,t)=>`<label class="kchip ${kon[key]?'on':''}"><input type="checkbox" data-kon="${esc(key)}" ${kon[key]?'checked':''} ${kilit?'disabled':''}> ${t}</label>`;const gunY=dd=>`${dd.getDate()} ${AYK[dd.getMonth()]} ${GUN[(dd.getDay()+6)%7]}`;const ad=p=>esc(kisaAd(p.ad));
-  const bolum=(cls,baslik,aciklama,ic)=>`<div class="kt ${cls}"><div class="kth"><b>${baslik}</b><span>${aciklama}</span></div><div class="kti">${ic}</div></div>`;
-  const git=(wid,t)=>`<button class="kchip" data-git="${wid}">${t}</button>`;let h='';
-  if(K.bos.length)h+=bolum('kirmizi',`Boş günler · ${K.bos.length}`,'Bu günler doldurulmadan ay kapatılamaz. Tıklayınca o haftanın çizelgesi açılır.',K.bos.map(x=>git(x.wid,`${ad(x.p)} · ${gunY(x.d)}`)).join(''));
-  if(K.yedi.length)h+=bolum(K.yedi.every(x=>x.ok)?'yesil':'sari',`Haftalık izin kullanmadan 7 gün çalışanlar · ${K.yedi.length}`,'Doğruysa teyit edin. Teyit edilmeden ay kapatılamaz.',K.yedi.map(x=>`<label class="kchip ${x.ok?'on':''}"><input type="checkbox" data-teyit="${esc(x.key)}" ${x.ok?'checked':''} ${kilit?'disabled':''}> ${ad(x.p)} · ${rangeLabel(x.wid)}</label>`).join(''));
-  const tamam=(L,f)=>L.every(x=>kon[f(x)]);
-  if(K.eksi.length)h+=bolum(tamam(K.eksi,x=>'eksi_'+x.p.id)?'yesil':'sari',`Eksi fazla mesai · ${K.eksi.length}`,'Eksik çalışma mı, yanlış saat mi kontrol edip işaretleyin.',K.eksi.map(x=>tik('eksi_'+x.p.id,`${ad(x.p)} · ${sg(x.a.fm)} sa`)).join(''));
-  if(K.yuksek.length)h+=bolum(tamam(K.yuksek,x=>'yuksek_'+x.p.id)?'yesil':'sari',`Çok yüksek fazla mesai (${YUKSEK_FM} saatin üstü) · ${K.yuksek.length}`,'Saatlerin doğru girildiğini kontrol edip işaretleyin.',K.yuksek.map(x=>tik('yuksek_'+x.p.id,`${ad(x.p)} · ${sg(x.a.fm)} sa`)).join(''));
-  if(K.izin.length)h+=bolum(tamam(K.izin,x=>'izin_'+x.p.id)?'yesil':'sari',`Rapor ve izinler · ${K.izin.length}`,'Rapor evrakı ve izin dilekçeleri tamamsa işaretleyin.',K.izin.map(x=>tik('izin_'+x.p.id,`${ad(x.p)} · ${x.iz.map(k=>`${x.a.kod[k]} ${KOD[k].ad.toLocaleLowerCase('tr-TR')}`).join(', ')}`)).join(''));
-  if(K.gc.length)h+=bolum(tamam(K.gc,x=>'gc_'+x.p.id)?'yesil':'sari',`Ay içinde giren / çıkan · ${K.gc.length}`,'Tarihler doğruysa işaretleyin.',K.gc.map(({p})=>tik('gc_'+p.id,`${ad(p)} · ${[p.baslama&&p.baslama.slice(0,7)===ak?'deneme '+trTarih(p.baslama):'',p.giris&&p.giris.slice(0,7)===ak?'giriş '+trTarih(p.giris):'',p.cikis&&p.cikis.slice(0,7)===ak?'çıkış '+trTarih(p.cikis):''].filter(Boolean).join(' · ')}`)).join(''));
-  if(K.yok.length)h+=bolum(tamam(K.yok,x=>'yok_'+x.p.id)?'yesil':'sari',`Bu ay çizelgede hiç görünmeyenler · ${K.yok.length}`,'Personel listesinde aktif ama çizelgeye eklenmemiş. Unutulmadıysa işaretleyin.',K.yok.map(({p})=>tik('yok_'+p.id,ad(p))).join(''));
-  return h?`<div class="sec">Kontrol edilecekler · hepsi işaretlenmeden ay kapatılamaz</div><div class="card kcard">${h}</div>`:`<div class="banner ok">Kontrol edilecek bir şey yok.</div>`;}
-function renderAy(){const ak=aktifAy('ay');S.ay=ak;const sb=sube();const kisiler=sirala(ayKadrosu(ak));const R=kisiler.map(p=>({p,a:ayHesap(p,ak,sb)}));
-  const d=S.aylar[ak]||{durum:'taslak'};const kilit=d.durum==='sube_onay'||d.durum==='bolge_onay';
-  const topFm=R.reduce((s,x)=>s+x.a.fm,0),rap=R.reduce((s,x)=>s+(x.a.kod.R||0),0),ui=R.reduce((s,x)=>s+(x.a.kod.UI||0),0),bos=R.reduce((s,x)=>s+x.a.bos,0);
-  let h=`<div class="weeknav"><button class="nav-arrow" id="prevM">‹</button><div class="ttl">${ayAdi(ak)}<small>${DURUM[d.durum].ad}</small></div><button class="nav-arrow" id="nextM">›</button></div>`;
-  if(sb.fmDonem==='hafta'){const L=fmHaftalari(ak);const bitis=ymd(addDays(parse(L[L.length-1]),6));h+=`<div class="banner ${ymd(today())<=bitis&&!kilit?'':'ok'}">Fazla mesai dönemi: ${fmDonemYazi(ak,sb)}.${ymd(today())<=bitis&&!kilit?` Ayı ${trTarih(bitis)} çizelgesi bittikten sonra kapatın.`:''}</div>${fmSecici(ak,sb)}`;}
-  if(d.durum==='geri')h+=`<div class="banner bad">Bölge müdürü geri gönderdi${d.not?': "'+esc(d.not)+'"':''}. Düzeltip ayı yeniden kapatın.</div>`;
-  if(d.durum==='sube_onay')h+=`<div class="banner">Ay kapatıldı, bölge müdürünün onayı bekleniyor. Bu ayın günleri kilitli.</div>`;
-  if(d.durum==='bolge_onay')h+=`<div class="banner ok">Bölge müdürü onayladı. Puantaj işverene gönderildi.</div>`;
-  h+=`<div class="kpis"><div class="kpi"><span>Toplam fazla mesai</span><b>${fmt(topFm)} sa</b></div><div class="kpi"><span>Çalışan</span><b>${R.length}</b></div><div class="kpi"><span>Rapor / Ücr. izin</span><b>${rap} / ${ui} gün</b></div><div class="kpi"><span>Boş gün</span><b style="color:${bos?'var(--warn)':'var(--ok)'}">${bos?bos+' gün':'Yok'}</b></div></div>`;
-  const K=ayKontrolleri(ak,R,sb,d);const kon=d.kontrol||{};
-  const isaretsiz=[...K.eksi.map(x=>'eksi_'+x.p.id),...K.yuksek.map(x=>'yuksek_'+x.p.id),...K.izin.map(x=>'izin_'+x.p.id),...K.gc.map(x=>'gc_'+x.p.id),...K.yok.map(x=>'yok_'+x.p.id)].filter(k=>!kon[k]).length;
-  const onceki=ayKaydir(ak,-1);const oncekiAcik=onceki>=BASLANGIC_AY&&!['sube_onay','bolge_onay'].includes((S.aylar[onceki]||{}).durum);
-  const engel=oncekiAcik?`${ayAdi(onceki)} kapatılmadan`:K.bos.length?`${K.bos.length} boş gün doldurulmadan`:K.yedi.some(x=>!x.ok)?`7 gün çalışılan haftalar teyit edilmeden`:isaretsiz?`Kontrol edilecekler listesinde ${isaretsiz} madde işaretlenmeden`:'';
-  if(R.length)h+=ayKontrolHtml(K,ak,kilit,kon);
-  let son=null;R.forEach(({p,a})=>{const g=p.grup||'K';if(g!==son){if(son)h+='</div>';son=g;h+=`<div class="sec">${GRUP[g]}</div><div class="card list">`;}
-    const tags=['R','UI','YI','B'].filter(k=>a.kod[k]).map(k=>`<span class="tag">${a.kod[k]} ${KOD[k].ad.toLocaleLowerCase('tr-TR')}</span>`).join('')+(a.bos?`<span class="tag warn">${a.bos} boş gün</span>`:'');
-    const sag=a.esnaf?`<b>${fmt(a.h)} sa</b><span>esnaf</span>`:a.part?`<b>${fmt(a.h)} sa</b><span>part</span>`:`<b>${sg(a.fm)} sa</b><span>${fmt(a.h)} sa çalıştı</span>`;
-    h+=`<div class="row"><div class="av">${esc(bas(p.ad))}</div><div class="m"><b>${esc(p.ad)}</b><span>${esc(p.gorev||GRUP[g])} · ${p.sekil==='Part'?`${a.gun} gün çalıştı`:`${a.bordroGun} gün${a.gun!==a.bordroGun?` <em style="font-style:normal;color:var(--mut)">(${a.gun} gün çalıştı)</em>`:''}`}</span>${tags?`<div class="tags">${tags}</div>`:''}</div><div class="r">${sag}</div></div>`;});
-  if(son)h+='</div>';if(!R.length)h+=`<div class="empty-state"><b>Bu ay için çizelge yok</b></div>`;
-  h+=`<div style="margin-top:16px">${d.durum==='sube_onay'?'<button class="btn" style="width:100%" id="cekB">Kapatmayı geri çek</button>':d.durum==='bolge_onay'?'':(engel?`<button class="btn primary" style="width:100%" disabled>Ayı kapat → bölge müdürüne gönder</button><p class="note" style="color:var(--bad);font-weight:600">${engel} ay kapatılamaz.</p>`:`<button class="btn primary" style="width:100%" id="kapB">Ayı kapat → bölge müdürüne gönder</button>`)}</div>
-   <p class="note">Ayı kapatınca bu ayın çalışma günleri, fazla mesaisi, rapor ve izinleri bölge müdürünün puantaj ekranına düşer. Bölge müdürü onaylayınca puantaj işverene hazır olur.</p>`;
-  view(h,()=>{byId('prevM').onclick=()=>ayGit(ak,-1);byId('nextM').onclick=()=>ayGit(ak,1);fmSeciciBagla(ak);
-    document.querySelectorAll('[data-git]').forEach(b=>b.onclick=()=>{S.hafta=b.dataset.git;S.tab='cizelge';tryLS('pm.tab','cizelge');render();window.scrollTo(0,0);});
-    // Teyit, haftanın kaydına yazılır (ay kapanmadan değiştirilebilir)
-    document.querySelectorAll('[data-teyit]').forEach(c=>c.onchange=()=>{const k=c.dataset.teyit;const i=k.lastIndexOf('_');const pid=k.slice(0,i),wid=k.slice(i+1);
-      const w0=S.haftalar[wid]||{};S.haftalar[wid]={...w0,teyit7:{...(w0.teyit7||{}),[pid]:c.checked}};
-      {const sid=S.subeId;sirayla(sid+'|'+wid,()=>{arka(setDoc(weekRef(wid,sid),{hafta:wid,ay2:ayKey(addDays(parse(wid),6)),teyit7:{[pid]:c.checked}},{merge:true}));});}render();});
-    document.querySelectorAll('[data-kon]').forEach(c=>c.onchange=()=>{const k=c.dataset.kon;S.aylar[ak]={...d,kontrol:{...(d.kontrol||{}),[k]:c.checked}};
-      {const sid=S.subeId;sirayla('ay'+ak,()=>{arka(setDoc(doc(db,'subeler',sid,'aylar',ak),{durum:d.durum||'taslak',kontrol:{[k]:c.checked}},{merge:true}));});}render();});
-    const kb=byId('kapB');if(kb)kb.onclick=()=>openSheet(`<h2>Ayı kapat</h2><div class="sub">${esc(trBuyukBas(sb.ad))} şubesi · ${ayAdi(ak)}</div>
-      <div class="confirm">Ay kapatılınca bu ayın çizelgesi şube tarafından değiştirilemez. Çalışma günleri, fazla mesai, rapor ve izinler bölge müdürünün onayına gönderilir.</div>
-      <p class="note">${R.length} çalışan · toplam fazla mesai ${fmt(topFm)} sa · rapor ${rap} gün · ücretsiz izin ${ui} gün</p>
-      <div class="row2"><button class="btn grow" id="kNo">Vazgeç</button><button class="btn primary grow" id="kOk">Evet, kapat ve gönder</button></div>`,()=>{byId('kNo').onclick=closeSheet;byId('kOk').onclick=()=>{closeSheet();
-      const sid=S.subeId;sirayla('ay'+ak,async()=>{const b=writeBatch(db);b.set(doc(db,'subeler',sid,'aylar',ak),{durum:'sube_onay',kapatan:S.user.uid,kapatanAd:S.me.adSoyad||'',kapatma:new Date().toISOString(),not:''},{merge:true});
-        b.set(doc(db,'ozetler',ak+'__'+sid),{sube:sid,ay:ak,kisiler:subeOzeti(ak,sid),guncellendi:new Date().toISOString()},{mergeFields:['sube','ay','kisiler','guncellendi']});await b.commit();});toast(`${ayAdi(ak)} kapatıldı, bölge müdürüne gönderildi.`);};});
-    const cb=byId('cekB');if(cb)cb.onclick=()=>{{const sid=S.subeId;sirayla('ay'+ak,()=>{arka(setDoc(doc(db,'subeler',sid,'aylar',ak),{durum:'taslak'},{merge:true}));});}toast('Kapatma geri çekildi.');};});}
 
 /* ================= Haftalar: şubelerin haftalık kapatma takibi (bölge müdürü + işveren) ================= */
 const TK_HAFTA=4;
@@ -1629,9 +1493,7 @@ function renderTakip(){takipDinle();const L=takipHaftalari();
   return h;}
 function takipBagla(){const p=byId('tkPrev'),n=byId('tkNext');if(p)p.onclick=()=>{S.tkKay=(S.tkKay||0)+TK_HAFTA;render();};if(n)n.onclick=()=>{S.tkKay=Math.max(0,(S.tkKay||0)-TK_HAFTA);render();};
   document.querySelectorAll('[data-tks]').forEach(b=>b.onclick=()=>takipPanel(b.dataset.tks,b.dataset.tkw));
-  const hb=byId('tkHepsi');if(hb)hb.onclick=async()=>{const L=takipHaftalari();const B=[];S.subeIds.forEach(sid=>L.forEach(w=>{if(tkDurum(sid,w)==='kapali')B.push([sid,w]);}));hb.disabled=true;
-    let n=0,atla=0,dur=false;for(const[sid,w]of B){hb.textContent=`Onaylanıyor ${n+atla+1} / ${B.length}`;const r=await subedeYap(sid,w,async()=>{await gunleriYukle(cizelgeKisileri(w),haftaAylari(w));const K=haftaKontrol(w);if(K.izinG.length||K.gc.length||K.yok.length)return'atla';return haftaOnayla(w);});if(r===false){dur=true;break;}if(r==='atla')atla++;else n++;}
-    toast(dur?`${n} hafta onaylandı; ${B.length-n-atla} hafta onaylanamadı, tekrar deneyin.`:atla?`${n} hafta onaylandı. ${atla} haftada kontrol maddesi (izin, giriş / çıkış) var, tek tek açıp onaylayın.`:`${n} hafta onaylandı.`);render();};}
+  }
 // Başka şubenin haftasında işlem: önce o şube yüklenir (hesaplar o şubenin çizelgesiyle yapılır).
 async function subedeYap(sid,wid,fn){if(S.subeId!==sid)selectSube(sid);S.hafta=wid;for(let i=0;i<300&&!sunucuHazir(sid);i++)await new Promise(r=>setTimeout(r,100));
   if(!sunucuHazir(sid)){toast(`${subeAdi(sid)} şubesinin verileri yüklenemedi, işlem yapılmadı. İnterneti kontrol edip tekrar deneyin.`);return false;}return fn();}
@@ -1646,10 +1508,7 @@ function takipPanel(sid,wid){const w=(S.tk[sid]||{})[wid]||{};const d=tkDurum(si
    <span class="lbl">Kayıt</span><div class="card list">${kay.map(k=>`<div class="row"><div class="m"><b>${esc(k.i)}</b><span>${esc(k.ad||'')} · ${tarihSaat(k.t)}${k.not?' · "'+esc(k.not)+'"':''}</span></div></div>`).join('')||'<div class="note" style="padding:10px 12px">Henüz işlem yok.</div>'}</div>`,()=>{
    const on=(id,f)=>{const e=byId(id);if(e)e.onclick=f;};
    on('tpAc',()=>{closeSheet();S.tab='cizelge';tryLS('pm.tab','cizelge');S.hafta=wid;if(S.subeId!==sid)selectSube(sid);else render();window.scrollTo(0,0);});
-   on('tpOn',async()=>{closeSheet();await subedeYap(sid,wid,()=>haftaOnayPanel(wid));});
-   on('tpGeri',async()=>{closeSheet();await subedeYap(sid,wid,()=>haftaGeriPanel(wid));});
    on('tpKap',async()=>{closeSheet();await subedeYap(sid,wid,()=>haftaKapatPanel(wid,true));});
-   on('tpKapOn',async()=>{closeSheet();await subedeYap(sid,wid,()=>haftaKapatPanel(wid,true));});
    on('tpKilit',async()=>{closeSheet();await subedeYap(sid,wid,()=>haftaGeriPanel(wid));});});}
 
 /* ================= Puantaj (bölge müdürü + işveren) ================= */
@@ -2731,12 +2590,8 @@ function subePanel(id){const s=id?sube(id):{...VARSAYILAN,ad:''};
      if(id)Object.assign(body,ayarGecmisYama(id,body));
      sirayla('s'+sid,()=>{arka(setDoc(doc(db,'subeler',sid),body,{merge:true}));});closeSheet();toast(id?'Şube ayarları kaydedildi.':`${ad} şubesi eklendi.`);};});}
 /* ================= Excel'den çizelge aktarma (işveren) ================= */
-let xlsxYuklendi=null;function xlsxLib(){if(xlsxYuklendi)return xlsxYuklendi;xlsxYuklendi=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=()=>ok(window.XLSX);s.onerror=no;document.head.appendChild(s);});return xlsxYuklendi;}
 const XKOD={'HAF. İZİN':'HT','HAF.İZİN':'HT','HAFTALIK İZİN':'HT','HAFTA TATİLİ':'HT','İZİN':'HT','ÜCR. İZİN':'UI','ÜCR.İZİN':'UI','ÜCRETSİZ İZİN':'UI','YILLIK İZİN':'YI','YILLIK':'YI','RAPOR':'R','RAPORLU':'R','BAYRAM':'B','DİĞER':'D'};
 function xSerialTarih(v){if(typeof v!=='number'||v<20000)return null;const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
-function xSaat(v){if(typeof v==='number'){if(v>=1)v=v%1;const m=Math.round(v*1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}if(typeof v==='string')return normTime(v);return null;}
-function xTarihMetin(v){if(typeof v==='number')return xSerialTarih(v);if(typeof v!=='string')return'';const m=v.trim().match(/^(\d{1,2})[.,/](\d{1,2})[.,/](\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'';}
-function adBaslik(s){return String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr-TR').split(' ').map(w=>w?w.charAt(0).toLocaleUpperCase('tr-TR')+w.slice(1):w).join(' ');}
 function cikisBildirimMetni(p){const t=(p.cikis||'').split('-');const tar=t.length===3?`${t[2]}.${t[1]}.${t[0]}`:'';const sid=(p.sgkSube&&p.sgkSube!==SGK_YOK)?p.sgkSube:(p.anaSube||'');
   const sk=p.sekil==='Part'?'Part time':'Tam zamanlı';
   return `ÇIKIŞ BİLDİRİMİ\n\nAdı Soyadı: ${adBuyuk(p.ad)}\nŞube: ${subeAdi(sid)}\nÇıkış tarihi: ${tar}\nÇıkış nedeni: İstifa\nÇalışma şekli: ${sk}`;}
@@ -2763,90 +2618,6 @@ function isimEslestir(liste,dogru){
 // Aktarımda adı sonra yazılacak kişi "İSİMSİZ 3" diye açılır; Excel'deki adı excelAd'da kalır (ipucu ve sonraki aktarımda eşleşme için).
 // Numara şirket genelinde tektir: aynı adlı iki kayıt aynı kişi sayıldığından iki "İSİMSİZ 1" olmamalı.
 function isimsizMi(p){return !!p&&/^İSİMSİZ \d+$/.test(adBuyuk(p.ad));}
-function isimsizSonNo(){let n=0;S.personel.forEach(p=>{const m=adBuyuk(p.ad).match(/^İSİMSİZ (\d+)$/);if(m)n=Math.max(n,+m[1]);});return n;}
-// Excel'de adı tutmayan satırı, aynı haftalar daha önce aktarılmışsa çizelge verisinden tanır (ör. adı sonradan düzeltilmiş kişi).
-// g: [[hafta, gün, değer]]. Aday: ortak dolu günlerinin %90'ı ve Excel'in o haftalardaki günlerinin %80'i aynı, en az 5 gün; ikinci güçlü aday varsa önerilmez.
-function izEslestir(g,adaylar,H){
-  const L=adaylar.map(p=>{let ayni=0,dolu=0,tot=0;g.forEach(([w,i,x])=>{const c=H[w]&&H[w].cells&&H[w].cells[p.id];if(!c||!Object.values(c).some(v=>v!=null&&v!==''))return;tot++;const y=c[String(i)];if(y==null||y==='')return;dolu++;if(y===x)ayni++;});return{p,ayni,dolu,tot};})
-    .filter(s=>s.ayni>=5&&s.ayni>=0.9*s.dolu&&s.ayni>=0.8*s.tot).sort((a,b)=>b.ayni-a.ayni);
-  if(!L.length||(L[1]&&L[1].ayni>=0.6*L[0].ayni))return null;return L[0];}
-function xAd(s){return adBuyuk(s);}
-function xSekil(s){s=String(s||'').toLocaleUpperCase('tr-TR');return s.includes('PART')?'Part':s.includes('ESNAF')?'Esnaf kurye':'Tam';}
-function excelCoz(X,wb){const val=(ws,r,c)=>{const x=ws[X.utils.encode_cell({r,c})];return x?x.v:null;};const sayfalar=[];let liste=null;
-  wb.SheetNames.forEach(name=>{const ws=wb.Sheets[name];if(!ws['!ref'])return;const R=X.utils.decode_range(ws['!ref']);const maxR=Math.min(R.e.r,400);
-    // Personel listesi sayfası
-    for(let r=0;r<=Math.min(maxR,12);r++)for(let c=0;c<=Math.min(R.e.c,20);c++){if(String(val(ws,r,c)||'').trim().toLocaleUpperCase('tr-TR')==='ADI SOYADI'){
-      const hdr={};for(let cc=c;cc<=Math.min(R.e.c,c+12);cc++)hdr[String(val(ws,r,cc)||'').trim().toLocaleUpperCase('tr-TR')]=cc;
-      if(hdr['GİRİŞ TARİHİ']!=null&&!liste){liste={};for(let rr=r+1;rr<=maxR;rr++){const ad=val(ws,rr,c);if(!ad||typeof ad!=='string')continue;
-        const hv=k=>hdr[k]!=null?val(ws,rr,hdr[k]):null;
-        liste[isimAnahtar(ad)]={sekil:hdr['ÇALIŞMA ŞEKLİ']!=null?xSekil(val(ws,rr,hdr['ÇALIŞMA ŞEKLİ'])):null,giris:xTarihMetin(val(ws,rr,hdr['GİRİŞ TARİHİ'])),cikis:hdr['ÇIKIŞ TARİHİ']!=null?xTarihMetin(val(ws,rr,hdr['ÇIKIŞ TARİHİ'])):'',
-          bilgi:excelBilgi({tel:hv('TELEFON'),eposta:hv('MAİL')??hv('E-POSTA')??hv('MAIL'),iban:hv('IBAN')})};}}}}
-    // Çizelge sayfası: A sütununda "N. HAFTA", bir alt satırda C,E,G… tarihler, altında isimler
-    const hafta=[];for(let r=0;r<=maxR;r++){const a=String(val(ws,r,0)||'').toLocaleUpperCase('tr-TR');if(!/HAFTA/.test(a))continue;const mon=xSerialTarih(val(ws,r+1,2));if(!mon)continue;
-      const kisiler={};for(let rr=r+2;rr<=Math.min(maxR,r+26);rr++){const a2=String(val(ws,rr,0)||'').toLocaleUpperCase('tr-TR');if(/HAFTA/.test(a2))break;const ad=val(ws,rr,1);if(!ad||typeof ad!=='string'||!ad.trim())continue;
-        const key=isimAnahtar(ad);const row=kisiler[key]||(kisiler[key]={ad:xAd(ad),gun:{}});
-        for(let k=0;k<7;k++){const s=val(ws,rr,2+2*k),e=val(ws,rr,3+2*k);let v=null;
-          if(typeof s==='string'&&!normTime(s)){v=XKOD[s.trim().toLocaleUpperCase('tr-TR').replace(/\s+/g,' ')]||null;}
-          else{const a1=xSaat(s),b1=xSaat(e);if(a1&&b1)v=a1+'-'+b1;}
-          if(v==null)continue;if(row.gun[k]&&row.gun[k]!=='D'&&v==='D')continue;row.gun[k]=v;}}
-      if(Object.keys(kisiler).length)hafta.push({mon,kisiler});}
-    if(hafta.length)sayfalar.push({name,hafta,ilk:hafta[0].mon,son:hafta[hafta.length-1].mon});});
-  return{sayfalar,liste};}
-function excelAktarPanel(sid){const sb=sube(sid);
-  openSheet(`<h2>Excel'den çizelge aktar</h2><div class="sub">${esc(sb.ad)} · Mevcut MESAİ ÇİZELGESİ dosyanızı seçin. Personel listesi sayfası varsa giriş/çıkış tarihleri, telefon, e-posta ve IBAN da alınır.</div>
-   <label class="field"><span>Excel dosyası (.xlsx)</span><input id="xF" type="file" accept=".xlsx,.xlsm,.xls"></label><div id="xOut"></div>`,()=>{
-   byId('xF').onchange=async e=>{const f=e.target.files[0];if(!f)return;const O=byId('xOut');O.innerHTML='<p class="note">Dosya okunuyor…</p>';let X,P;
-     try{X=await xlsxLib();P=excelCoz(X,X.read(await f.arrayBuffer(),{type:'array'}));}catch(err){O.innerHTML='<div class="confirm bad">Dosya okunamadı.</div>';return;}
-     if(!P.sayfalar.length){O.innerHTML='<div class="confirm bad">Bu dosyada çizelge sayfası bulunamadı.</div>';return;}
-     const sirali=P.sayfalar.slice().sort((a,b)=>a.ilk.localeCompare(b.ilk));const son2=sirali.slice(-2).map(s=>s.name);
-     O.innerHTML=`<span class="lbl">Aktarılacak aylar (sayfalar)</span><div class="card list">${sirali.map(s=>`<label class="row"><input type="checkbox" value="${esc(s.name)}" ${son2.includes(s.name)?'checked':''} style="width:20px;height:20px"><div class="m"><b>${esc(s.name)}</b><span>${trTarih(s.ilk)} – ${trTarih(ymd(addDays(parse(s.son),6)))} · ${s.hafta.length} hafta</span></div></label>`).join('')}</div>
-      <div class="row2"><button class="btn primary grow" id="xOn">Devam</button></div><div id="xOn2"></div>`;
-     byId('xOn').onclick=()=>{const sec=[...O.querySelectorAll('input[type=checkbox]:checked')].map(i=>i.value);if(!sec.length){toast('En az bir sayfa seçin.');return;}
-       const haftalar={};sirali.filter(s=>sec.includes(s.name)).forEach(s=>s.hafta.forEach(h=>{const w=haftalar[h.mon]||(haftalar[h.mon]={});Object.entries(h.kisiler).forEach(([k,v])=>{w[k]={ad:v.ad,gun:{...((w[k]||{}).gun||{}),...v.gun}};});}));
-       const kisi={};Object.values(haftalar).forEach(w=>Object.entries(w).forEach(([k,v])=>{if(!kisi[k])kisi[k]={ad:v.ad,vardiya:0};kisi[k].vardiya+=Object.keys(v.gun).length;}));
-       // Kişi satır sırasıyla değil Excel'deki adıyla eşleşir (her haftada sıra değişebilir). Önce ad soyad, sonra önceki aktarımda saklanan Excel adı.
-       const SP=subePersoneli(sid);const mevcut={};
-       SP.forEach(p=>{if(!p.excelAd)return;const k=isimAnahtar(p.excelAd);if(!mevcut[k]||(isimsizMi(mevcut[k])&&!isimsizMi(p)))mevcut[k]=p;});
-       SP.forEach(p=>{mevcut[isimAnahtar(p.ad)]=p;});
-       const keys=Object.keys(kisi).sort((a,b)=>kisi[a].ad.localeCompare(kisi[b].ad,'tr'));
-       const tutan=new Set(keys.filter(k=>mevcut[k]).map(k=>mevcut[k].id));
-       const adaylar=SP.filter(p=>!tutan.has(p.id)).sort((a,b)=>adBuyuk(a.ad).localeCompare(adBuyuk(b.ad),'tr'));
-       // Adı tutmayan satır: aynı haftalar daha önce aktarıldıysa çizelgesi aynı olan kişi seçili gelir (aynı kişi iki kayıt olmasın).
-       const H=S.subeId===sid?S.haftalar:{};const oneri={};
-       keys.filter(k=>!mevcut[k]).forEach(k=>{const g=[];Object.entries(haftalar).forEach(([mon,w])=>{if(w[k])Object.entries(w[k].gun).forEach(([i,x])=>g.push([mon,i,x]));});
-         const e=izEslestir(g,adaylar,H);if(e&&(!oneri[e.p.id]||oneri[e.p.id].ayni<e.ayni))oneri[e.p.id]={k,...e};});
-       const oneriK={};Object.values(oneri).forEach(o=>{oneriK[o.k]=o;});const izBas=isimsizSonNo();
-       byId('xOn2').innerHTML=`<span class="lbl">Personel · ${keys.length} kişi</span><p class="note" style="margin:0 0 8px">Kişiler satır sırasıyla değil Excel'deki adıyla eşleşir. Listede olmayanlar "İsimsiz" açılır; adını sonra Personel'de yazarsınız, Excel'deki adı altında görünür. Kişi listede başka adla varsa "Kim?" sütunundan seçin. Yeni kişilerin görevini ve SGK şubesini seçin.</p>
-        <div class="tbl-wrap"><table class="pt"><thead><tr><th class="l">Excel'deki isim</th><th>Kim?</th><th>Görev</th><th>SGK şubesi</th><th>Giriş</th><th>Çıkış</th></tr></thead><tbody>${keys.map(k=>{const m=mevcut[k],l=(P.liste||{})[k]||{};const o=oneriK[k];
-          return `<tr><td class="l"><b>${esc(kisi[k].ad)}</b><br><span class="tag">${kisi[k].vardiya} gün</span>${l.sekil&&!m?` <span class="tag">${esc(l.sekil)}</span>`:''}</td><td>${m?`<span class="chip ok">Mevcut</span>${adBuyuk(m.ad)!==kisi[k].ad?`<br><span class="tag">${esc(adBuyuk(m.ad))}</span>`:''}`:`<select data-k="${esc(k)}" data-t="k"><option value="__isz">İsimsiz</option><option value="__ad">Excel'deki adla aç</option>${adaylar.map(p=>`<option value="${esc(p.id)}" ${o&&o.p.id===p.id?'selected':''}>${esc(adBuyuk(p.ad))}${isimsizMi(p)&&p.excelAd?' (Excel: '+esc(p.excelAd)+')':''}${p.cikis?' · çıkış '+trTarih(p.cikis):''}</option>`).join('')}</select>${o?`<br><span class="tag">çizelgesi tutuyor · ${o.ayni}/${o.dolu} gün</span>`:''}`}</td>
-          <td>${m?esc(gorevTahmin(m)):`<select data-k="${esc(k)}" data-t="g"><option value="">Seçin</option>${GOREVLER.map(g=>`<option value="${esc(g.ad)}" ${(l.sekil==='Esnaf kurye'&&g.ad==='Esnaf Kurye')?'selected':''}>${esc(g.ad)}</option>`).join('')}</select>`}</td>
-          <td>${m?esc(m.sgkSube===SGK_YOK?'Boş':m.sgkSube?subeAdi(m.sgkSube):'—'):`<select data-k="${esc(k)}" data-t="s"><option value="${SGK_YOK}">Boş</option>${tumSubeler().map(([id2,ad2])=>`<option value="${esc(id2)}" ${id2===sid?'selected':''}>${esc(ad2)}</option>`).join('')}</select>`}</td><td>${trTarih(m?m.giris:l.giris)}</td><td>${trTarih(m?m.cikis:l.cikis)}</td></tr>`;}).join('')}</tbody></table></div>
-        <p class="note">${Object.keys(haftalar).length} hafta aktarılacak. Aynı haftada çizelgede daha önce girilmiş günler Excel'deki değerle değiştirilir.</p>
-        <div class="row2"><button class="btn grow" id="xNo">Vazgeç</button><button class="btn primary grow" id="xOk">Aktar</button></div>`;
-       byId('xNo').onclick=closeSheet;
-       const X2=byId('xOn2');const sel=(k,t)=>X2.querySelector(`select[data-t="${t}"][data-k="${CSS.escape(k)}"]`);const kim=k=>{const s=sel(k,'k');return s?s.value:null;};
-       // İsimsiz numaraları tablo sırasıyla verilir; seçim değişince yeniden sıralanır. Mevcut kişi seçilen satırda görev / SGK seçilmez.
-       const izAdlari=()=>{const o={};let n=izBas;keys.forEach(k=>{if(!mevcut[k]&&kim(k)==='__isz')o[k]='İSİMSİZ '+(++n);});return o;};
-       const guncelle=()=>{const iz=izAdlari();keys.forEach(k=>{const s=sel(k,'k');if(!s)return;s.options[0].textContent=iz[k]?adBaslik(iz[k]):'İsimsiz';const yeni=s.value==='__isz'||s.value==='__ad';['g','s'].forEach(t=>{const x=sel(k,t);if(x)x.disabled=!yeni;});});};
-       X2.querySelectorAll('select[data-t="k"]').forEach(s=>s.onchange=guncelle);guncelle();
-       byId('xOk').onclick=async()=>{const iz=izAdlari();const hedef={};// Excel adı → mevcut kayıt
-         keys.forEach(k=>{if(mevcut[k]){hedef[k]=mevcut[k];return;}const v=kim(k);if(v&&v!=='__isz'&&v!=='__ad'){const p=S.personel.find(x=>x.id===v);if(p)hedef[k]=p;}});
-         const say={};Object.values(hedef).forEach(p=>{say[p.id]=(say[p.id]||0)+1;});const cift=[...new Set(Object.values(hedef).filter(p=>say[p.id]>1).map(p=>adBuyuk(p.ad)))];
-         if(cift.length){toast(`${cift.join(', ')} birden fazla Excel satırına seçildi. Her kişi tek satıra seçilebilir.`);return;}
-         const eksik=keys.filter(k=>!hedef[k]&&!gorevBul((sel(k,'g')||{}).value));
-         if(eksik.length){toast(`${eksik.length} kişinin görevi seçilmedi.`);return;}
-         const btn=byId('xOk');btn.disabled=true;btn.textContent='Aktarılıyor…';const pidOf={};const ops=[];
-         keys.forEach(k=>{const m=hedef[k];if(m){pidOf[k]=m.id;const lb=((P.liste||{})[k]||{}).bilgi||{};const ek={};Object.entries(lb).forEach(([f,v])=>{if(v&&!m[f])ek[f]=v;});if(!mevcut[k]&&!m.excelAd)ek.excelAd=kisi[k].ad;if(Object.keys(ek).length)ops.push([doc(db,'personel',m.id),ek,true]);return;}
-           const l=(P.liste||{})[k]||{};const ad=iz[k]||kisi[k].ad;const pid=slug(ad)+'-'+Math.random().toString(36).slice(2,6);pidOf[k]=pid;
-           const g=gorevBul(sel(k,'g').value);const sgkV=sel(k,'s').value;
-           ops.push([doc(db,'personel',pid),{ad,excelAd:kisi[k].ad,grup:g.grup,gorev:g.ad,sekil:g.sekil||(l.sekil==='Part'?'Part':'Tam'),giris:l.giris||'',cikis:l.cikis||'',sgkSube:sgkV,anaSube:sid,...(l.bilgi||{})},false]);});
-         let atla=0;Object.entries(haftalar).forEach(([mon,w])=>{const cells={};Object.entries(w).forEach(([k,v])=>{cells[pidOf[k]]=Object.fromEntries(Object.entries(v.gun).map(([i,x])=>[String(i),x]));});
-           // Var olan haftanın listesi korunur (yeni kişiler eklenir), durumu değişmez; kapatılmış / onaylı haftaya yazılmaz.
-           const e=S.subeId===sid?S.haftalar[mon]:null;if(e&&e.hd&&e.hd!=='acik'){atla++;return;}const k0=e?(Array.isArray(e.kadro)?e.kadro:Object.keys(e.cells||{})):[];
-           ops.push([doc(db,'subeler',sid,'haftalar',mon),{hafta:mon,ay2:ayKey(addDays(parse(mon),6)),kadro:[...k0,...Object.keys(cells).filter(x=>!k0.includes(x))],...(e?{}:{hd:'acik'}),cells},true]);});
-         try{for(let i=0;i<ops.length;i+=400){const b=writeBatch(db);ops.slice(i,i+400).forEach(([r,d,m])=>m?b.set(r,d,{merge:true}):b.set(r,d));await b.commit();}
-           const nIz=Object.keys(iz).length;closeSheet();toast(`${Object.keys(haftalar).length-atla} hafta ve ${keys.length} kişi aktarıldı.${atla?` ${atla} kapatılmış / onaylı hafta atlandı.`:''}${nIz?` ${nIz} kişi isimsiz açıldı, adlarını Personel'de yazın.`:''}`);if(S.subeId!==sid)selectSube(sid);}
-         catch(e){btn.disabled=false;btn.textContent='Aktar';yazmaHatasi(e);}};};};});}
 
 /* ================= Yedek (işveren) =================
    Tüm veritabanını tek bir JSON dosyası olarak indirir. Ücretsiz planda otomatik yedek olmadığı için düzenli alınmalı.
