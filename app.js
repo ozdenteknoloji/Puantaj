@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=225;
+const APP_SURUM=226;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -746,6 +746,9 @@ function view(html,after){const sk=[S.tab,S.subeId,S.pgor,S.pt&&S.pt.sube,S.pt&&
   if(eskiW.length)document.querySelectorAll('#view .tbl-wrap.dondur').forEach((w,i)=>{const o=eskiW[i];if(o){w.scrollLeft=o[0];w.scrollTop=o[1];}});
   after&&after();kilitUygula();}
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='subeSecim'){selectSube(e.target.value);window.scrollTo(0,0);}});
+// Telefon yan yatıkken uyarılar tek satıra kısalır; dokununca tam metin açılır / kapanır.
+const YATAY=window.matchMedia?matchMedia('(orientation:landscape) and (max-height:520px) and (pointer:coarse)'):null;
+document.addEventListener('click',e=>{if(!YATAY||!YATAY.matches)return;const b=e.target&&e.target.closest&&e.target.closest('.banner');if(!b||e.target.closest('button,a,input,select,label'))return;b.classList.toggle('ac');});
 function top(eyebrow,title,right=''){byId('top').innerHTML=`<div class="top-row"><div class="grow"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1></div>${right}</div>`;}
 function sekmeler(){if(!S.me)return[];const t=[['cizelge','Çizelge'],['personel','Personel']];
   if(puantajYetki())t.push(['puantaj','Puantaj']);if(isIsveren()||isBolge())t.push(['yonetim','Yönetim']);return t;}
