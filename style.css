@@ -549,3 +549,18 @@ table.bl td.nmc span .sbtag:first-child{margin-left:0}
 .hr-w{font-size:11.5px;color:var(--mut);margin-top:1px}
 .hr-geri{color:var(--bad);font-weight:700}
 .hr-kap{display:inline-block;font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:1px 7px}
+@media (min-width:701px){.seg.sbseg{display:none}}
+.tbl-wrap.bl-cal.sbw{width:fit-content;margin:0 auto}
+table.bl.sbv{width:auto}
+table.bl.sbv td.nmc{min-width:220px;width:220px}
+table.bl.sbv td.bi{padding-left:4px;padding-right:4px}
+table.bl.sbv td.bi.sbtd{padding-left:10px;padding-right:10px}
+table.bl.sbv td.bi select{min-width:100px}
+table.bl.sbv td.bi input[type=date]{width:128px}
+table.bl.sbv td.bi input[data-f="tel"],table.bl.sbv td.bi input[data-f="tc"]{width:122px}
+table.bl.sbv td.bi input[data-f="iban"]{width:262px}
+.pkr.sbr{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.pkr.sbr .sbl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pkr.sbr .sbg{font-size:12px;color:var(--mut);font-weight:600}
+.pkr.sbr .sbd{text-align:right;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pkr.sbr .sbd em{display:block;font-style:normal;font-size:10.5px;color:var(--mut);font-weight:500}

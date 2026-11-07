@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=222;
+const APP_SURUM=223;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1237,8 +1237,8 @@ function digerCalSubeler(p){return [...new Set([p.anaSube,...ekSubeleri(p)].filt
 function sbEtiket(p){return digerCalSubeler(p).map(x=>`<em class="sbtag">+ ${esc(kisaSubeAd(x))}</em>`).join('');}
 function mobilListe(A,C,P,Pf,td){const ch=(b,v,c='')=>`<span class="pch ${c}"><b>${b}</b>${esc(v)}</span>`;
   const satir=p=>{if(isSube()){/* şube müdürü: ad, görev · şekil, işe başlama (yoksa SGK girişi, adı geçmeden) ya da çıkış tarihi */const cik=p.cikis&&p.cikis<td;const g=gorevTahmin(p);const bas=p.baslama||p.giris;
-      const tar=cik?'Çıkış '+trTarih(p.cikis):bas?'İşe başlama '+trTarih(bas):'';
-      return `<button class="pkr ${cik?'cik':''}" data-pk="${esc(p.id)}"><span class="n">${esc(adBuyuk(p.ad))}${sbEtiket(p)}<i>${esc(g||'görev yok')} · ${esc(p.sekil||'Tam')}</i></span>${tar?`<span class="d">${tar}</span>`:''}</button>`;}
+      const tar=cik?['Çıkış',trTarih(p.cikis)]:bas?['İşe başlama',trTarih(bas)]:null;
+      return `<button class="pkr sbr ${cik?'cik':''}" data-pk="${esc(p.id)}"><span class="sbl"><span class="n">${esc(adBuyuk(p.ad))}${sbEtiket(p)}</span><span class="sbg">${esc(g||'görev yok')} · ${esc(p.sekil||'Tam')}</span></span>${tar?`<span class="sbd"><em>${tar[0]}</em>${tar[1]}</span>`:''}</button>`;}
     const sgk=p.sgkSube&&p.sgkSube!==SGK_YOK?p.sgkSube:'';const ana=p.anaSube||S.subeId;const ms=odemeSubesi(p,ayKey(today()));const cik=p.cikis&&p.cikis<td;
     const tar=[p.giris?'Giriş '+trTarih(p.giris):'',p.baslama?'İşe başlama '+trTarih(p.baslama):'',p.cikis?'Çıkış '+trTarih(p.cikis):'',cik&&!pasifSure(p,td)?'Pasife geçer '+trTarih(pasifTarihi(p.cikis)):''].filter(Boolean).join(' · ');
     const g=gorevTahmin(p);let c=sgk?ch('SGK',subeAdi(sgk)):p.sgkSube===SGK_YOK?ch('SGK','yok'):ch('SGK','seçilmedi','bad');if(ana!==sgk)c+=ch('Çalıştığı',subeAdi(ana));const ek=ekSubeleri(p).filter(x=>x!==ana&&x!==sgk);if(ek.length&&!isSube())c+=ch('Diğer',ek.map(subeAdi).join(', '),'e');if(!isSube()&&ms!==sgk&&(ms!==ana||sgk))c+=ch('Maaş',subeAdi(ms),'f');
@@ -1248,13 +1248,13 @@ function mobilListe(A,C,P,Pf,td){const ch=(b,v,c='')=>`<span class="pch ${c}"><b
   if(C.length){h+=accBaslik('cik','Çıkış yapanlar',C.length,acc.cik);if(acc.cik)h+=C.map(satir).join('');}
   if(P.length&&!isSube()){h+=accBaslik('pas','Pasifler',P.length,acc.pas);if(acc.pas)h+=`<div class="pasara"><input class="pasAra" placeholder="Ad ile ara" value="${esc(S.pasAra||'')}" autocomplete="off"></div>`+(Pf.length?Pf.map(satir).join(''):'<div class="pkg">Eşleşen kişi yok</div>');}
   return `<div class="pkl">${h||'<div class="pkg">Henüz personel yok</div>'}</div>`;}
-function renderBilgiListesi(){const T=byId('blTbl');const gor=S.pgor||'calisma';const CAL=gor==='calisma';
+function renderBilgiListesi(){const T=byId('blTbl');const PC=!(window.matchMedia&&matchMedia('(max-width:700px)').matches);const gor=isSube()&&PC?'calisma':(S.pgor||'calisma');const CAL=gor==='calisma';
   const list=sirala(subePersoneli());const td=ymd(today());
   const A=list.filter(p=>!p.cikis||p.cikis>=td);const Pall=list.filter(p=>p.cikis&&p.cikis<td&&pasifMi(p,td,list));const C=list.filter(p=>p.cikis&&p.cikis<td&&!pasifMi(p,td,list));
   const acc=S.acc||{};const qa=isimAnahtar(S.pasAra||'');const Pf=qa?Pall.filter(p=>isimAnahtar(p.ad).includes(qa)):Pall;
   const SB=isSube();/* şube müdürü: SGK şubesi, SGK giriş ve pasifler gösterilmez */
   const L=[...A,...(acc.cik?C:[]),...(acc.pas&&!SB?Pf:[])];const Lsay=[...A,...C];
-  const F=CAL?[]:BILGI;
+  const F=CAL?(SB&&PC?BILGI.filter(f=>['tel','tc','iban'].includes(f.k)):[]):BILGI;/* şube müdürü bilgisayarda tek ekran: telefon, TC, IBAN çalışma bilgilerinin yanında (acil durum ve e-posta kartta) */
   if(T&&T.contains(document.activeElement)&&T.dataset.n===String(L.length))return; // yazarken yeniden çizme
   tcYukle(L);
   const subeler=tumSubeler();const anaSec=(isIsveren()?S.subeIds:(S.me.subeler||[])).filter(x=>S.subeler[x]);
@@ -1288,16 +1288,16 @@ function renderBilgiListesi(){const T=byId('blTbl');const gor=S.pgor||'calisma';
      ${F.map((f,c)=>`<td class="bi"><input data-r="${r}" data-c="${c}" data-f="${f.k}" value="${esc(bilgiGoster(f,f.k==='tc'?tcOf(p):p[f.k]))}" placeholder="${esc(f.ph)}" inputmode="${f.im}" autocomplete="off" spellcheck="false" ${dis}></td>`).join('')}
      <td class="bi"><button class="mini" data-x="menu" title="Sil / çıkış ver" ${dis}>⋯</button></td></tr>`;};
   const satir=SB?satirSB:satir0;
-  let body='';let r=0;const CS=CAL?(SB?4:8):F.length+2;GRUP_SIRA.forEach(g=>{const l=A.filter(p=>(p.grup||'K')===g);if(!l.length)return;body+=`<tr class="grp"><td class="l nmc">${GRUP[g]} · ${l.length}</td><td colspan="${CS}"></td></tr>`;l.forEach(p=>{body+=satir(p,L.indexOf(p));});});
+  let body='';let r=0;const CS=CAL?(SB?4+F.length:8):F.length+2;GRUP_SIRA.forEach(g=>{const l=A.filter(p=>(p.grup||'K')===g);if(!l.length)return;body+=`<tr class="grp"><td class="l nmc">${GRUP[g]} · ${l.length}</td><td colspan="${CS}"></td></tr>`;l.forEach(p=>{body+=satir(p,L.indexOf(p));});});
   const accTr=(k,ad,n)=>`<tr class="grp"><td class="l nmc"><button class="accb" data-acc="${k}">${ad} · ${n} ${acc[k]?'▾':'▸'}</button></td><td colspan="${CS}"></td></tr>`;
-  if(C.length){body+=accTr('cik','Çıkış yapanlar',C.length);if(acc.cik){if(SB&&CAL)body+=`<tr class="grp sbh2"><td class="l nmc"></td><td></td><td></td><td>Çıkış tarihi</td><td></td></tr>`;C.forEach(p=>{body+=satir(p,L.indexOf(p));});}}
+  if(C.length){body+=accTr('cik','Çıkış yapanlar',C.length);if(acc.cik){if(SB&&CAL)body+=`<tr class="grp sbh2"><td class="l nmc"></td><td></td><td></td><td>Çıkış tarihi</td>${F.map(()=>'<td></td>').join('')}<td></td></tr>`;C.forEach(p=>{body+=satir(p,L.indexOf(p));});}}
   if(Pall.length&&!SB){body+=accTr('pas','Pasifler',Pall.length);if(acc.pas){body+=`<tr><td class="l" colspan="${CS+1}"><input class="pasAra" placeholder="Ad ile ara" value="${esc(S.pasAra||'')}" autocomplete="off"></td></tr>`;Pf.forEach(p=>{body+=satir(p,L.indexOf(p));});}}
   const h=`${S.ibanDonus?`<div class="banner ok ibdon"><span>IBAN listesinden geldiniz. IBAN'ı yazıp Enter'a basın, anında kaydedilir.</span><button class="btn" id="ibDon">‹ IBAN listesine dön</button></div>`:''}<div class="actions"><button class="btn primary grow" id="addP">Personel ekle</button>${isSube()?'':``}</div>
    <p class="note" style="margin-top:0">${esc(sube().ad)} · ${(()=>{const dis=Lsay.filter(p=>p.anaSube!==S.subeId&&p.sgkSube!==S.subeId&&ekSubeleri(p).includes(S.subeId)).length;return dis&&!isSube()?`${Lsay.length-dis} kişi + ${dis} diğer şubeden`:`${Lsay.length} kişi`;})()}${eksik?` · <b style="color:var(--warn)">${eksik} kişide ${SB?'görev':'görev ya da SGK şubesi'} eksik</b>`:''}${isz?` · <b style="color:var(--warn)">${isz} isimsiz kişinin adı yazılmadı</b>`:''}${SB?'':' · '+(CAL?'Hücreye tıklayıp değiştirin, anında kaydedilir.':'Excel\'den kopyalayıp yapıştırabilirsiniz; ilk sütun isimse satırlar isimle eşleşir.')}</p>
-   <div class="seg" id="pGor" style="margin-bottom:10px"><button data-v="calisma" class="${CAL?'on':''}">Çalışma bilgileri</button><button data-v="iletisim" class="${CAL?'':'on'}">İletişim ve banka</button></div>
+   <div class="seg ${SB?'sbseg':''}" id="pGor" style="margin-bottom:10px"><button data-v="calisma" class="${CAL?'on':''}">Çalışma bilgileri</button><button data-v="iletisim" class="${CAL?'':'on'}">İletişim ve banka</button></div>
    ${CAL?mobilListe(A,C,SB?[]:Pall,SB?[]:Pf,td):''}
    <div class="tbl-wrap dondur ${CAL?'bl-cal':''} ${CAL&&SB?'sbw':''}" style="scroll-padding-left:165px;scroll-padding-top:40px"><table class="pt bl sade ${CAL?'cal':''} ${SB?'sbv':''}" id="blTbl" data-n="${L.length}"><thead><tr><th class="l">Ad soyad</th>${CAL?(SB?`<th>Görev</th><th>Şekil</th><th>İşe başlama</th>`:`<th>Görev</th><th>Şekil</th><th class="l">Şubeler</th><th>İşe başlama</th><th>SGK giriş</th><th>Çıkış</th>`):''}${F.map(f=>`<th>${f.ad}</th>`).join('')}<th></th></tr></thead>
-   <tbody>${body||`<tr><td class="l" colspan="${CAL?(SB?5:8):F.length+2}">Henüz personel yok. "Personel ekle" ile başlayın.</td></tr>`}</tbody></table></div>`;
+   <tbody>${body||`<tr><td class="l" colspan="${CAL?(SB?5+F.length:8):F.length+2}">Henüz personel yok. "Personel ekle" ile başlayın.</td></tr>`}</tbody></table></div>`;
   view(h,()=>{byId('addP').onclick=()=>personelPanel(null);if(byId('ibDon'))byId('ibDon').onclick=()=>{S.ibanDonus=false;S.tab='yonetim';S.ynt='iban';tryLS('pm.tab','yonetim');render();window.scrollTo(0,0);};
     if(S.ibanOdak){const tr=[...document.querySelectorAll('#blTbl tr[data-pid]')].find(t=>t.dataset.pid===S.ibanOdak);const el=tr&&tr.querySelector('input[data-f="iban"]');
       if(el){S.ibanOdak=null;tr.classList.add('odak');setTimeout(()=>{el.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});el.focus({preventScroll:true});try{el.select();}catch(_){}},60);setTimeout(()=>tr.classList.remove('odak'),4000);}}document.querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>personelPanel(b.dataset.pk));const tb=byId('blTbl');document.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>{S.acc={...(S.acc||{}),[b.dataset.acc]:!(S.acc||{})[b.dataset.acc]};render();});document.querySelectorAll('.pasAra').forEach(i=>i.oninput=()=>{S.pasAra=i.value;const s0=i.selectionStart;render();const nI=[...document.querySelectorAll('.pasAra')].find(x=>x.offsetParent);if(nI){nI.focus();try{nI.setSelectionRange(s0,s0);}catch(_){}}});document.querySelectorAll('#pGor button').forEach(b=>b.onclick=()=>{S.pgor=b.dataset.v;render();});
