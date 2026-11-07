@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=218;
+const APP_SURUM=219;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -792,7 +792,7 @@ function renderCizelge(){const wid=S.hafta;const sb=haftaAyari(wid);const ds=wee
   view(h,()=>{bindWeek();gridBagla();selCiz();const mb=byId('modB');if(mb)mb.onclick=()=>{MOD=null;render();};});}
 function degerYazi(v){return isShift(v)?v.replace('-',' – '):v&&KOD[v]?KOD[v].ad:'Boş';}
 function bindWeek(){byId('prevW').onclick=()=>{S.hafta=ymd(addDays(parse(S.hafta),-7));SEL=null;render();};byId('nextW').onclick=()=>{S.hafta=ymd(addDays(parse(S.hafta),7));SEL=null;render();};
-  byId('thisW').onclick=()=>{S.hafta=mondayOf(today());render();};const on=(id,f)=>{const e=byId(id);if(e)e.onclick=f;};on('czMenu',e=>noktaMenu(e.currentTarget,`<button data-m="k"><span>⧉</span>Geçen haftayı kopyala</button><button data-m="p"><span>⤴</span>Paylaş</button><button data-m="g" ${undo.length?'':'disabled'}><span>↶</span>Geri al</button>${puantajYetki()&&((S.haftalar[S.hafta]||{}).kayit||[]).length?'<button data-m="kay"><span>🕘</span>Hafta geçmişi</button>':''}`,m=>{const ky=m.querySelector('[data-m=kay]');if(ky)ky.onclick=()=>{noktaKapat();haftaKayitPanel(S.hafta);};m.querySelector('[data-m=k]').onclick=()=>{noktaKapat();kopyala();};m.querySelector('[data-m=p]').onclick=()=>{noktaKapat();paylas();};m.querySelector('[data-m=g]').onclick=()=>{noktaKapat();geriAl();};}));haftaIslemBagla(S.hafta);}
+  byId('thisW').onclick=()=>{S.hafta=mondayOf(today());render();};const on=(id,f)=>{const e=byId(id);if(e)e.onclick=f;};on('czMenu',e=>noktaMenu(e.currentTarget,`<button data-m="k"><span>⧉</span>Geçen haftayı kopyala</button><button data-m="p"><span>⤴</span>Paylaş</button><button data-m="g" ${undo.length?'':'disabled'}><span>↶</span>Geri al</button>`,m=>{m.querySelector('[data-m=k]').onclick=()=>{noktaKapat();kopyala();};m.querySelector('[data-m=p]').onclick=()=>{noktaKapat();paylas();};m.querySelector('[data-m=g]').onclick=()=>{noktaKapat();geriAl();};}));haftaIslemBagla(S.hafta);}
 function gridBagla(){const G=byId('grid');if(!G)return;
   G.oncontextmenu=e=>{if(e.target.closest('.cell,.nm'))e.preventDefault();};
   G.onpointerdown=e=>{ptrTip=e.pointerType||'mouse';const c=e.target.closest('.cell[data-r]');const n=e.target.closest('[data-pe]');
