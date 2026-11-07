@@ -564,3 +564,8 @@ table.bl.sbv td.bi input[data-f="iban"]{width:262px}
 .pkr.sbr .sbg{font-size:12px;color:var(--mut);font-weight:600}
 .pkr.sbr .sbd{text-align:right;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink)}
 .pkr.sbr .sbd em{display:block;font-style:normal;font-size:10.5px;color:var(--mut);font-weight:500}
+/* Personel · bölge müdürü / işveren (çalışma bilgileri): isimler kesilmez, tablo ortalı, şube etiketleri tek satır */
+table.bl.cal:not(.sbv) td.nmc{width:220px;min-width:220px;max-width:220px}
+.tbl-wrap.bl-cal:not(.sbw){margin:0 auto}
+table.bl.cal:not(.sbv) .sbz{flex-wrap:nowrap;max-width:none}
+.accb{white-space:nowrap;background:none;border:0;padding:0}
