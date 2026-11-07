@@ -113,7 +113,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=216;
+const APP_SURUM=217;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1831,7 +1831,7 @@ function renderPuantajDetay(){if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){ver
   if(bolgeIs&&BK.length)h+=`<div class="sec">Onay öncesi kontrol · muhasebe grubundan teyit edin</div><div class="card kcard"><div class="kt ${bkEksik?'sari':'yesil'}"><div class="kth"><b>Rapor, izinler, part gün, SGK giriş ve çıkışlar · ${BK.length}</b><span>Her birini muhasebe WhatsApp grubundaki bilgiyle karşılaştırıp işaretleyin. Hepsi işaretlenmeden onaylanamaz.</span></div>
     <div class="bkl">${BK.map(x=>`<label class="${bk[x.k]?'on':''}"><input type="checkbox" data-bk="${esc(x.k)}" ${bk[x.k]?'checked':''}><span><b class="ad">${esc(x.ad)}</b><span class="nt"><em>${esc(x.tur)}</em> · ${esc(x.deg)}</span><span class="alt">${x.gorev?esc(x.gorev)+' · ':''}SGK: ${esc(x.sgk||'—')}</span></span></label>`).join('')}</div></div></div>`;
   const pOnc=ayKaydir(ak,-1);const pOnceki=(pOnc>=BASLANGIC_AY&&!onayli((S.aylar[pOnc]||{}).durum))||bkEksik>0;if(bolgeIs&&pOnceki)h+=`<p class="note" style="color:var(--bad);font-weight:600">${pOnc>=BASLANGIC_AY&&!onayli((S.aylar[pOnc]||{}).durum)?`${ayAdi(pOnc)} puantajı onaylanmadan bu ay onaylanamaz.`:`Onay öncesi kontrolde ${bkEksik} madde işaretlenmedi.`}</p>`;
-  if(!bolgeIs&&!onayli(durum))h+=`<p class="note">Bütün haftalar onaylanınca "Onayla ve kilitle" açılır. Bir haftada düzeltme gerekiyorsa Haftalar ekranından o haftayı şubeye geri gönderin.</p>`;
+  if(!bolgeIs&&!onayli(durum))h+=`<p class="note">Bütün haftalar kapatılınca "Onayla ve kilitle" açılır. Bir haftada düzeltme gerekiyorsa Haftalar ekranından o haftayı şubeye geri gönderin.</p>`;
   h+=`<div class="row2">${bolgeIs?`${pOnceki?`<button class="btn primary grow" disabled title="Önce önceki ay onaylanmalı">Onayla ve kilitle</button>`:'<button class="btn primary grow" id="onayB">Onayla ve kilitle</button>'}`:''}${isIsveren()&&durum==='bolge_onay'?'<button class="btn grow" id="acB">Kilidi aç</button>':''}</div>`;
   // İşveren: ödemeler bitince ayı kesin kapatır. Önceki ay kesin kapanmadan olmaz (devir ondan gelir).
   if(isIsveren()&&durum==='bolge_onay'&&V.kilitli){const pk=pOnc<BASLANGIC_AY||(S.aylar[pOnc]||{}).durum==='kesin';
