@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=226;
+const APP_SURUM=227;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -450,8 +450,8 @@ function fmKisiUcreti(sb,n,us){return sb.fmYontem!=='maas'&&sayi(us&&us.fmOzel)>
 function fmSaatUcreti(sb,n,ak){if(sb.fmYontem!=='maas')return sayi(sb.fmUcret);if(!n)return 0;const h=n/30/9;return(ak&&ak>=FM_KUSURAT_AYI)?Math.floor(h+1e-9):h;}
 // Puantaj sağ tarafı (ödemeler).
 // Çizelgeden gelen fazla mesai ve saatlik çalışma saati kendiliğinden ödenir; Veri girişinde "Reddedildi" yapılan ödenmez.
-// Onay sag[pid].otoOnay = {fm: saat, sa: saat}; çizelge değişip saat farklılaşınca onay kendiliğinden düşer. Onaylı / kesin ayda kapı yok.
-// Kilitli (onaylı) ya da kesin ayda çizelgeden gelenler onaylı sayılır; açık ayda onay bekler.
+// Reddetme sag[pid].otoRed = {fm: saat, sa: saat}: aynı saat için geçerli, çizelge değişip saat farklılaşınca red düşer ve satır yeniden ödenir.
+// Kilitli (onaylı) ya da kesin ayda reddetme yapılamaz (⋮ çıkmaz); kilit önce açılır.
 const otoKapi=(ak,kilitli,kesin)=>!kilitli&&!kesin;
 const otoAyni=(a,b)=>a!=null&&Math.abs(sayi(a)-(b||0))<0.005;
 function sagHesap(pid,sol,sag,net,sb,devir,ek={},us={},kapi=false){const e=k=>ek[k]||0;if(typeof us==='boolean')us={tip:us?'paket':'maas'};const tip=us.tip||'maas';let pb=tip==='paket';const saat=tip==='saat'&&!(sol.sekil==='Esnaf kurye');const s0=sag||{};const devirAvans=devir<0?-devir:0;const araOdeme=e('AO');const s={...s0,avans:sayi(s0.avans)+e('AV')+devirAvans,paketPrimi:sayi(s0.paketPrimi)+e('PP'),ciroPrimi:sayi(s0.ciroPrimi)+e('CP'),paketSayisi:sayi(s0.paketSayisi)+e('PS')};const esnaf=sol.sekil==='Esnaf kurye';
@@ -1858,6 +1858,8 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   V.satir.forEach(x=>{if(x.hes.saat&&x.hes.cizelgeSaat)oto.push({pid:x.pid,on:'sa',tur:'SA',miktar:x.hes.cizelgeSaat,aciklama:`çizelgedeki saatler (${ayAralik})`});});
   V.satir.forEach(x=>{Object.entries(x.sol.disVeri||{}).forEach(([k,v])=>{if(Math.abs(v)>0.001)oto.push({pid:x.pid,tur:k,miktar:v,aciklama:'başka şubenin veri girişinden',kaynak:'başka şube'});});});
   oto.sort((a,b)=>String(adOf(a.pid)).localeCompare(String(adOf(b.pid)),'tr'));
+  const onayAcik=otoKapi(V.ak,V.kilitli,V.kesin);const satirM=new Map(V.satir.map(x=>[x.pid,x]));
+  const reddi=v=>{const x=satirM.get(v.pid);const r=x&&x.hes.otoRed;return !!(r&&v.on&&r[v.on]);};
   const opt=(v,t,sel)=>`<option value="${esc(v)}" ${sel?'selected':''}>${esc(t)}</option>`;
   const hataSay=veri.filter(v=>veriKontrol(v,kL,ak,V.kilitli,V).gecersiz).length;const uyariSay=veri.filter(v=>veriKontrol(v,kL,ak,V.kilitli,V).uyari).length;
   const adYazi=v=>v.ad!=null&&v.ad!==''?v.ad:(v.pid?adBuyuk(adOf(v.pid)):'');
@@ -1877,7 +1879,10 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   // Geçen aydan devreden avans: hesapta zaten otomatik var; tablonun en üstünde salt okunur satır olarak görünür (elle yazılırsa iki kez sayılır).
   {const fA=kfAktifMi('veri');const vP=new Set(VIS.map(x=>x.v.pid).filter(Boolean));const sp=(t,st='')=>`<td class="bi${t}"${st?` style="${st}"`:''}><span style="display:block;padding:8px 6px;font-size:14px;font-weight:600;color:var(--mut)">`;
    V.satir.filter(x=>x.hes.devirAvans&&(!fA||vP.has(x.pid))).sort((a,b)=>String(adOf(a.pid)).localeCompare(String(adOf(b.pid)),'tr')).forEach(x=>{
-    h+=`<tr class="oto devir"><td class="rn"></td>${sp('')}${esc(trTarih(ak+'-01'))}</span></td>${sp(' l')}${esc(adBuyuk(adOf(x.pid)))}</span></td>${sp(' l')}Avans</span></td>${sp('','text-align:right')}${esc(fmt(x.hes.devirAvans))}</span></td>${sp(' l')}Geçen aydan devreden avans (${esc(ayAdi(ayKaydir(ak,-1)))}) · otomatik, tekrar yazmayın</span></td><td></td></tr>`;});}
+    h+=`<tr class="oto devir"><td class="rn"></td>${sp('')}${esc(trTarih(ak+'-01'))}</span></td>${sp(' l')}${esc(adBuyuk(adOf(x.pid)))}</span></td>${sp(' l')}Avans</span></td>${sp('','text-align:right')}${esc(fmt(x.hes.devirAvans))}</span></td>${sp(' l')}Geçen aydan devreden avans (${esc(ayAdi(ayKaydir(ak,-1)))}) · otomatik, tekrar yazmayın</span></td><td></td></tr>`;});
+   // Çizelgeden (ve başka şubeden) gelenler: mavi tonlu, hesaba kendiliğinden girer. Açık ayda fazla mesai / saat satırında ⋮ ile reddedilebilir.
+   oto.filter(v=>!fA||vP.has(v.pid)).forEach(v=>{const t=veriTur(v.tur);const mk=v.miktar==null?'—':t&&t.b==='₺'?tl(sayi(v.miktar)):fmt(sayi(v.miktar))+' '+(t?t.b:'');const rd=reddi(v);const nok=onayAcik&&v.on&&satirM.has(v.pid);
+    h+=`<tr class="oto${rd?' red':''}"><td class="rn"></td>${sp('')}</span></td>${sp(' l')}${esc(adBuyuk(adOf(v.pid)))}</span></td>${sp(' l')}${esc(t?t.ad:v.tur)}</span></td>${sp('','text-align:right')}${esc(mk)}</span></td>${sp(' l')}<span class="tag">${rd?'reddedildi':esc(v.kaynak||(v.tur==='AV'?'devir':'çizelge'))}</span> ${esc(v.aciklama||'Mesai çizelgesinden')}</span></td><td>${nok?`<button class="mini otoNok" data-oto="${esc(v.pid)}|${v.on}" data-red="${rd?0:1}" aria-label="Seçenekler" title="Seçenekler">⋮</button>`:''}</td></tr>`;});}
   VIS.forEach((x,r)=>{const v=x.v;const k=x.k;const kil=V.kesin||(V.kilitli&&veriTur(v.tur)&&veriTur(v.tur).y==='sol'&&!k.gecersiz);
     h+=`<tr data-vid="${esc(v.id)}" data-r="${r}" class="${k.gecersiz?'hata':''}">
      <td class="rn" data-rn="${r}" title="Satırı seç (sürükleyerek birden çok satır)">${r+1}</td>
@@ -1889,15 +1894,6 @@ function veriGirisiHtml(V){const veri=(V.D&&V.D.veri)||[];const ak=V.ak;const kL
   if(!V.kesin)h+=`<tr class="ekle"><td colspan="7"><button class="mini ekleB" id="vSatir">+ Satır ekle</button><button class="mini ekleB" id="vSatir10">+ 10 satır</button></td></tr></tbody></table></div>
    <datalist id="vKisiL">${kL.map(([id,ad])=>`<option value="${esc(adBuyuk(ad))}">`).join('')}</datalist>
    <p class="note yardim">Excel gibi: hücreye tıklayıp seçin, sürükleyerek ya da Shift ile aralık seçin; soldaki satır numarasına tıklayarak (sürükleyerek) bütün satırları seçin, numaraların üstündeki # ile hepsini seçin. Ctrl+C kopyalar, Ctrl+V yapıştırır, Ctrl+Z son toplu işlemi geri alır. Delete: hücre seçiliyse temizler, tam satır seçiliyse satırları siler (önce sorar). Dolu hücrelerin üzerine yapıştırırken de önce sorulur. Çift tıklayarak ya da yazmaya başlayarak düzenleyin. Excel'deki satırları (TARİH · ŞUBE · AD SOYAD · VERİ TÜRÜ · MİKTAR · AÇIKLAMA) kopyalayıp seçili hücreye yapıştırın (seçim yoksa ilk boş satıra); satırlar kendiliğinden eklenir, şube sütunu atlanır. Yazdıklarınız anında kaydedilir. İsmi ya da türü tutmayan satırlar kırmızı görünür ve hesaba katılmaz.${V.kilitli?' Ay onaylandığı için gün türleri (rapor, izin, part gün) eklenemez; onaydan sonra eklenen kişiye de giriş yapılamaz. Düzeltme için kilidi açıp yeniden onaylayın.':''} Rapor, izin ve part gün hangi şubede girilirse girilsin kişinin SGK şubesinde ve maaş şubesinde sayılır.</p>`;
-  // Çizelgeden gelen fazla mesai / saat: açık ayda onaylanmadan hesaba girmez (sagHesap kapısı). Onay kutusu ve "Hepsini onayla".
-  const onayAcik=otoKapi(V.ak,V.kilitli,V.kesin);const satirM=new Map(V.satir.map(x=>[x.pid,x]));
-  const bekliyor=v=>{const x=satirM.get(v.pid);const b=x&&x.hes.otoBekle;return !!(b&&b[v.on]!=null);};const reddi=v=>{const x=satirM.get(v.pid);const r=x&&x.hes.otoRed;return !!(r&&r[v.on]);};
-  const bekSay=onayAcik?oto.filter(v=>v.on&&bekliyor(v)).length:0;S.pt._otoBek=bekSay;
-  if(oto.length){const ac=S.pt.otoAcik??(bekSay>0);h+=`<button class="btn" id="vOto" style="width:100%;margin-top:6px">${ac?'Otomatik gelenleri gizle':'Çizelgeden ve devirden otomatik gelenler'} · ${oto.length}${bekSay?` · <b style="color:var(--warn)">${bekSay} onay bekliyor</b>`:''}</button>`;
-    if(ac&&bekSay)h+=`<div class="actions" style="margin-top:6px"><button class="btn primary grow" id="vOtoHepsi">Çizelgeden gelenlerin hepsini onayla · ${bekSay}</button></div><p class="note yardim" style="margin:4px 0 0">Onay bekleyen ve reddedilen fazla mesai / saat ödemelere girmez; onay bekleyen varken ay onaylanamaz. Ödemeyeceğiniz küçük mesaileri "Reddedildi" yapın. Çizelge değişirse o satır yeniden karar bekler.</p>`;
-    if(ac)h+=`<div class="tbl-wrap" style="margin-top:8px"><table class="pt"><thead><tr><th>Kaynak</th><th class="l">Ad soyad</th><th class="l">Veri türü</th><th>Miktar</th><th class="l">Açıklama</th></tr></thead><tbody>${oto.map(v=>{const t=veriTur(v.tur);const mk=v.miktar==null?'—':t&&t.b==='₺'?tl(sayi(v.miktar)):fmt(sayi(v.miktar))+' '+(t?t.b:'');
-      const dr=bekliyor(v)?'bek':reddi(v)?'red':'on';const kutu=onayAcik&&v.on&&satirM.has(v.pid)?`<select class="otoSec" data-oto="${esc(v.pid)}|${v.on}" title="Onaylanan ödemelere girer, reddedilen girmez">${[['on','Ödenir'],['red','Reddedildi (ödenmez)']].map(([k,t])=>`<option value="${k}" ${dr===k?'selected':''}>${t}</option>`).join('')}</select> `:'';
-      return`<tr class="oto ${onayAcik&&v.on?(dr==='bek'?'bekle':dr==='red'?'red':''):''}"><td>${kutu}<span class="tag">${v.kaynak||(v.tur==='AV'?'devir':'çizelge')}</span></td><td class="l"><b>${esc(adBuyuk(adOf(v.pid)))}</b></td><td class="l">${esc(t?t.ad:v.tur)}</td><td>${mk}</td><td class="l">${esc(v.aciklama||'Mesai çizelgesinden')}</td></tr>`;}).join('')}</tbody></table></div>`;}
   return h;}
 /* ---- Veri girişi kayıtları ----
    Satırlar puantaj belgesinde satır satır tutulur: veriM.{id} = satır, silinen satır veriSil.{id} = true. Eski belgelerdeki "veri" dizisi okunurken birleştirilir.
@@ -2035,14 +2031,15 @@ function veriGirisiBagla(V){const ak=V.ak,sid=S.subeId;const kL=veriKisileri(V);
     if(degSay&&hucreSay>1)onayAc('Yapıştırılsın mı?',`<b>${degSatir.size} satırdaki ${degSay} dolu hücrenin</b> üzerine yazılacak${yeniSay?`, ${yeniSay} yeni satır eklenecek`:''}.<br>Yanlışsa Ctrl+Z ile geri alabilirsiniz.`,'Evet, yapıştır',uygula);else uygula();};
   byId('vSatir').onclick=()=>{S.pt.odak={c:1};ayarla([...veri0(),yeniSatir()],true);};
   byId('vSatir10').onclick=()=>{const L=veri0().slice();for(let i=0;i<10;i++)L.push(yeniSatir());S.pt.odak={c:1,ilkBos:true};ayarla(L,true);};
-  const ob=byId('vOto');if(ob)ob.onclick=()=>{S.pt.otoAcik=!(S.pt.otoAcik??(S.pt._otoBek>0));render();};
   // Çizelgeden gelenlerin onayı: sag[pid].otoOnay.{fm|sa} = onaylanan saat (çizelge değişince eşleşmez, onay düşer)
   const otoYaz=L=>{if(!otoKapi(V.ak,V.kilitli,V.kesin))return;const deg={};L.forEach(([pid,k,dr])=>{const x=V.satir.find(y=>y.pid===pid);if(!x)return;const h=Math.round((k==='fm'?(x.sol.fmSaat||0):(x.sol.calisilanSaat||0))*100)/100;
       const cur=((V.D&&V.D.sag)||{})[pid]||{};const d0=deg[pid]||{};deg[pid]={otoOnay:{...(cur.otoOnay||{}),...(d0.otoOnay||{}),[k]:dr==='on'?h:null},otoRed:{...(cur.otoRed||{}),...(d0.otoRed||{}),[k]:dr==='red'?h:null}};});if(!Object.keys(deg).length)return;
     const sag2=sagSonuclu(V,deg);S.pt.doc={...(S.pt.doc||{}),sag:{...((S.pt.doc&&S.pt.doc.sag)||{}),...Object.fromEntries(Object.keys(deg).map(p=>[p,sag2[p]]))}};
     veriYaz(sid,ak,{deg:{},sil:[]},{sube:sid,ay:ak,sag:sagYama(sag2,Object.keys(deg))});S.pt.zorla=true;render();};
-  document.querySelectorAll('[data-oto]').forEach(c=>c.onchange=()=>{const[pid,k]=c.dataset.oto.split('|');otoYaz([[pid,k,c.value]]);});
-  const oh=byId('vOtoHepsi');if(oh)oh.onclick=()=>{const L=[];V.satir.forEach(x=>{const b=x.hes.otoBekle;if(!b)return;if(b.fm!=null)L.push([x.pid,'fm','on']);if(b.sa!=null)L.push([x.pid,'sa','on']);});otoYaz(L);toast(`${L.length} kalem onaylandı.`);};
+  document.querySelectorAll('.otoNok').forEach(b=>b.onclick=e=>{e.stopPropagation();menuKapat();const[pid,k]=b.dataset.oto.split('|');const reddet=b.dataset.red==='1';const r=b.getBoundingClientRect();
+    const m=document.createElement('div');m.id='vMenu';m.className='vmenu';m.style.minWidth='140px';m.innerHTML=`<button data-m="oto">${reddet?'Reddet':'Ödenir yap'}</button>`;document.body.appendChild(m);
+    const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.max(4,Math.min(r.right-w,innerWidth-w-4))+'px';m.style.top=Math.max(4,Math.min(r.bottom+4,innerHeight-h-4))+'px';
+    m.onclick=()=>{menuKapat();otoYaz([[pid,k,reddet?'red':'on']]);};document.addEventListener('pointerdown',menuDis,true);window.addEventListener('scroll',menuKapat,true);window.addEventListener('resize',menuKapat);});
   if(S.pt._vkf)kfBagla('veri',S.pt._vkf.cols,S.pt._vkf.rows);const kv=byId('kfHepsiV');if(kv)kv.onclick=()=>{kfDurum('veri').f={};kfDurum('veri').sort=null;S.pt.vsel=null;render();};
   document.querySelectorAll('[data-sil]').forEach(b=>b.onclick=()=>{const v=veri0().find(x=>x.id===b.dataset.sil);const bos=v&&veriKontrol(v,kL,ak,V.kilitli,V).bos;if(!bos&&!b.dataset.ok){b.dataset.ok='1';b.textContent='Sil?';return;}ayarla(veri0().filter(x=>x.id!==b.dataset.sil),true);});
   // Fare: tıkla seç, sürükle / Shift+tıkla aralık, çift tıkla düzenle. Dokunmatik ekranda dokununca düzenler.

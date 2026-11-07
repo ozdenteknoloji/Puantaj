@@ -602,3 +602,12 @@ table.bl:not(.cal) td.bi input[data-f="iban"]{width:262px}
  .dh span{display:inline;margin-left:4px}
  .dh{padding-bottom:0}
 }
+
+table.vg2 tr.oto td{background:var(--navy-soft)}
+table.vg2 tr.oto.red td{background:transparent}
+table.vg2 tr.oto .tag{display:inline-block}
+table.vg2 tr.oto td:last-child{width:36px;text-align:center}
+table.vg2 .otoNok{min-width:36px;min-height:36px;font-size:18px;font-weight:800;color:var(--mut);background:none;border:0}
+table.vg2 tr.oto.devir td{background:transparent}
+table.vg2 tr.oto:not(.devir) td:last-child{position:sticky;right:0;z-index:1;background:var(--navy-soft)}
+table.vg2 tr.oto.red td:last-child{background:var(--surface)}
