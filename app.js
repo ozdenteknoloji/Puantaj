@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=221;
+const APP_SURUM=222;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1475,7 +1475,7 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
    ${isSube()?`<p class="note" style="margin-top:-2px">Çalışma şeklini ve çıkış tarihini bölge müdürü girer.</p>`:''}
    ${id&&!p.cikis&&yazB?'<button class="btn" id="pOut" style="margin-top:8px;width:100%">Bugün itibarıyla çıkış ver</button>':''}
    ${id&&p.cikis&&!isSube()&&p.sekil!=='Esnaf kurye'?'<button class="btn" id="pCB" style="margin-top:8px;width:100%">Çıkış bildirimi</button>':''}
-   ${id&&!isSube()&&p.cikis&&p.cikis<ymd(today())&&!S.personel.some(x=>x.id!==p.id&&ayniKisi(x,p)&&!(x.cikis&&x.cikis<ymd(today())))?'<button class="btn" id="pYeni" style="margin-top:8px;width:100%">Yeniden işe al</button>':''}
+   ${id&&p.cikis&&p.cikis<ymd(today())&&!S.personel.some(x=>x.id!==p.id&&ayniKisi(x,p)&&!(x.cikis&&x.cikis<ymd(today())))?'<button class="btn" id="pYeni" style="margin-top:8px;width:100%">Yeniden işe al</button>':''}
    ${id?personelGecmisHtml(p):''}
    <div id="pWarn"></div><div class="row2">${id&&(isIsveren()||(isBolge()&&(S.me.subeler||[]).includes(p.anaSube)))?'<button class="btn danger" id="pDel">Personeli sil</button>':''}<button class="btn grow" id="pNo">${yaz?'Vazgeç':'Kapat'}</button>${yaz?'<button class="btn primary grow" id="pOk">Kaydet</button>':''}</div>`,sh=>{
    sh.querySelectorAll('#pSekil button').forEach(bt=>bt.onclick=()=>{sh.querySelectorAll('#pSekil button').forEach(x=>x.classList.remove('on'));bt.classList.add('on');});
@@ -1487,7 +1487,7 @@ function personelPanel(id,gr,opt={}){const eskiK=!id&&opt.eski?S.personel.find(x
    const po=byId('pOut');if(po)po.onclick=()=>{byId('pCikis').value=ymd(today());po.hidden=true;};byId('pNo').onclick=closeSheet;const W=byId('pWarn');if(!yaz)return;
    byId('pAd').oninput=e=>{const el=e.target,a=el.selectionStart,b=el.selectionEnd;el.value=el.value.toLocaleUpperCase('tr-TR');try{el.setSelectionRange(a,b);}catch(_){}};
    let eskiB=null;if(eskiK){const o={},liste=[];BILGI.forEach(f=>{const v=f.k==='tc'?tcOf(eskiK):eskiK[f.k];if(v){o[f.k]=v;liste.push(f.ad);}});eskiB={o,liste:liste.length?liste:['kayıtlı bilgi yok']};}
-   if(!id&&!isSube()){/* eski kayıttan bilgi getirme şube müdüründe yok (pasif kişilerin bilgileri görünmesin) */const E=byId('pEski');const td0=ymd(today());
+   if(!id){/* eski kayıttan bilgi getirme: sadece iletişim ve banka bilgileri taşınır (SGK / maaş bilgisi taşınmaz) */const E=byId('pEski');const td0=ymd(today());
      const adaylar=()=>{const q=isimAnahtar(byId('pAd').value);if(q.length<3)return[];const k=[];S.personel.filter(x=>x.cikis&&x.cikis<td0&&isimAnahtar(x.ad).includes(q)).sort((a,b)=>b.cikis.localeCompare(a.cikis)).forEach(x=>{if(!k.some(y=>ayniKisi(y,x)))k.push(x);});return k.slice(0,3);};
      const ciz=()=>{if(eskiB){E.innerHTML=`<div class="note" style="margin:0 0 8px">Kayıtlı bilgiler yeni kayda eklenecek: ${eskiB.liste.map(esc).join(', ')}.</div>`;return;}
        const a=adaylar();E.innerHTML=a.map(x=>`<button class="btn small" data-e="${esc(x.id)}" style="margin:0 6px 8px 0">${esc(adBuyuk(x.ad))} · çıkış ${trTarih(x.cikis)} — bilgilerini getir</button>`).join('');
