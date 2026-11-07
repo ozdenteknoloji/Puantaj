@@ -329,6 +329,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Çizelge hareket geçmişi (belge kimliği: şube__hafta): hafta başladıktan sonra yapılan hücre değişiklikleri (kim, ne zaman, eski → yeni).
+    // Şubeye yetkisi olan herkes kendi yaptığı değişikliği ekler; okuyan sadece bölge müdürü (kendi şubeleri) ve işveren.
+    // Eklenen kayıt değiştirilemez, silinemez.
+    match /hareketLog/{d} {
+      allow get: if bolgede(d.split('__')[0]);
+      allow create: if subede(d.split('__')[0]) && request.resource.data.keys().hasOnly(['e']);
+      allow update: if subede(d.split('__')[0]) && request.resource.data.keys().hasOnly(['e'])
+        && request.resource.data.e.diff(resource.data.e).changedKeys().size() == 0
+        && request.resource.data.e.diff(resource.data.e).removedKeys().size() == 0;
+      allow delete: if false;
+    }
+
     // Anlaşılan net maaşlar — sadece sorumlu bölge müdürü ve işveren.
     match /maaslar/{s} {
       allow read, write: if bolgede(s);
