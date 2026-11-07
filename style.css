@@ -552,7 +552,7 @@ table.bl td.nmc span .sbtag:first-child{margin-left:0}
 @media (min-width:701px){.seg.sbseg{display:none}}
 .tbl-wrap.bl-cal.sbw{width:fit-content;margin:0 auto}
 table.bl.sbv{width:auto}
-table.bl.sbv td.nmc{min-width:220px;width:220px}
+table.bl.sbv td.nmc{min-width:var(--adw,220px);width:var(--adw,220px)}
 table.bl.sbv td.bi{padding-left:4px;padding-right:4px}
 table.bl.sbv td.bi.sbtd{padding-left:10px;padding-right:10px}
 table.bl.sbv td.bi select{min-width:100px}
@@ -565,7 +565,16 @@ table.bl.sbv td.bi input[data-f="iban"]{width:262px}
 .pkr.sbr .sbd{text-align:right;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink)}
 .pkr.sbr .sbd em{display:block;font-style:normal;font-size:10.5px;color:var(--mut);font-weight:500}
 /* Personel · bölge müdürü / işveren (çalışma bilgileri): isimler kesilmez, tablo ortalı, şube etiketleri tek satır */
-table.bl.cal:not(.sbv) td.nmc{width:220px;min-width:220px;max-width:220px}
+table.bl:not(.sbv) td.nmc{width:var(--adw,215px);min-width:var(--adw,215px);max-width:var(--adw,215px)}
 .tbl-wrap.bl-cal:not(.sbw){margin:0 auto}
 table.bl.cal:not(.sbv) .sbz{flex-wrap:nowrap;max-width:none}
 .accb{white-space:nowrap;background:none;border:0;padding:0}
+/* Aç/kapa oku: yazı tipinde ▸ ▾ işaretleri olmadığında nokta gibi görünüyordu; çizilmiş ok */
+.okc{display:inline-block;width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin:0 2px 1px 8px;vertical-align:middle;opacity:.7;transition:transform .15s}
+.okc.acik{transform:rotate(45deg);margin-bottom:4px}
+.pkgt .okc,.kacb .okc{margin-left:auto}
+/* Personel · iletişim ve banka: sütunlar sığsın diye genişlikler içeriğe göre */
+table.bl:not(.cal) td.bi input[data-f="tel"],table.bl:not(.cal) td.bi input[data-f="acilTel"],table.bl:not(.cal) td.bi input[data-f="tc"]{width:122px}
+table.bl:not(.cal) td.bi input[data-f="acilAd"]{width:150px}
+table.bl:not(.cal) td.bi input[data-f="eposta"]{width:190px}
+table.bl:not(.cal) td.bi input[data-f="iban"]{width:262px}
