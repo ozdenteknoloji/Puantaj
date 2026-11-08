@@ -619,3 +619,27 @@ table.vg2 .otoNok{min-width:36px;min-height:36px;font-size:18px;font-weight:800;
 table.vg2 tr.oto.devir td{background:transparent}
 table.vg2 tr.oto:not(.devir) td:last-child{position:sticky;right:0;z-index:1;background:var(--navy-soft)}
 table.vg2 tr.oto.red td:last-child{background:var(--surface)}
+
+/* ===== PC düzeni (fare ile kullanılan geniş ekran; telefon ve tablet dokunmatik düzeni değişmez) =====
+   Şube seçimi mavi başlığın ortasında; sayfa içindeki şube kutusu gizlenir. Puantajda ay seçimi "Şubeler" ile aynı satırda ortada.
+   Ödemeler / Muhasebe tablolarında etiketler ismin yanında (satır tek satır, aralık eskisi gibi ferah). Özet kutularında etiket ve tutar yan yana. */
+.tsube{display:none}
+@media (min-width:701px) and (hover:hover) and (pointer:fine){
+  .top-row{position:relative;align-items:center}
+  .tsube{display:flex;align-items:center;gap:10px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+  .tsube-cap{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75}
+  .tsube-sel{position:relative;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .tsube-sel select{display:block;font:inherit;font-size:18px;font-weight:800;color:var(--navy);background:transparent;border:0;padding:9px 40px 9px 22px;min-width:210px;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;cursor:pointer}
+  .tsube-sel::after{content:"▾";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--navy);pointer-events:none}
+  .tsube-sel.tek{font-size:18px;font-weight:800;color:var(--navy);padding:9px 22px;min-width:210px;text-align:center}
+  .tsube-sel.tek::after{content:none}
+  .ptsube.sbar{display:none}
+  .ptnav .ptsube{display:none}
+  .ptbar{padding:6px 4px;min-height:54px}
+  .ptnav{margin:-50px auto 12px}
+  .kpi{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .kpi b{display:inline;margin-top:0}
+  .app.ptd #view table.pt:not(.vt):not(.bl) td br{display:none}
+  .app.ptd #view table.pt:not(.vt):not(.bl) td .tag{margin-left:5px}
+  .app.ptd #view table.pt:not(.vt):not(.bl) td{padding-top:13px;padding-bottom:13px}
+}
