@@ -688,3 +688,6 @@ table.pt td .tag{-webkit-user-select:none;user-select:none}
   .tbl-wrap.dondur table.pt tr.tot td:nth-child(n){background:var(--soft)!important}
   .tbl-wrap.dondur table.pt tr.grp td:nth-child(n){background:var(--soft)!important}
 }
+
+/* Çoklu şube: şube alt toplam satırı */
+table.pt tr.ara td{background:#f7f8fb;font-weight:800;color:var(--navy);border-top:1px solid var(--line)}
