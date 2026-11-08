@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=236;
+const APP_SURUM=237;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2538,7 +2538,7 @@ function bordroFark(k,r){if(!r)return[];const F=[];
 function gunOzet(gun,o){const ek=[o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o.eksikKarisik?`${fmt(o.eksikKarisik)} gün diğer eksik`:'',o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean);
   return `<b>${gun??''}</b>${o.bayram>0?`<span style="color:var(--mut)"> +${fmt(o.bayram)} bayram</span>`:''}${ek.length?`<br><span style="color:var(--mut);font-size:11.5px">${ek.join(' · ')}</span>`:''}`;}
 const bordroOzet=k=>gunOzet(k.sgkGun,k.detay?k:{});
-const farkTag=F=>F.map(f=>`<br><span class="tag warn">${esc(f.ad)}: bordro ${esc(f.b)}, puantaj ${esc(f.p)}</span>`).join('');
+const farkTag=F=>F.map(f=>`<br><span class="tag bad">${esc(f.ad)}: bordro ${esc(f.b)}, puantaj ${esc(f.p)}</span>`).join('');
 const yuksekTag=v=>v!=null&&sayi(v)>BORDRO_UST_SINIR?'<br><span class="tag warn">tutar yüksek, kontrol edin</span>':'';
 /* Toplu bordro: tüm şubelerin PDF'leri tek seferde. Kişiler yetkili olunan tüm şubelerdeki o ay SGK'lı personel içinde (önce TC, sonra isim) bulunur;
    net tutar kişinin maaş şubesinin veri girişine "Bankaya yatan" olarak yazılır (gideceği şube satırda değiştirilebilir). Eşleşmeyen satırda kişi elle seçilir. */
@@ -2594,7 +2594,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
          <td>${bordroOzet(k)}</td><td>${puGun(k)}</td>
          <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin">${yuksekTag(k.netYazi)}</td></tr>`;};
      const hs={};es.forEach(k=>{hs[k.hedef]=(hs[k.hedef]||0)+1;});
-     byId('tbOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}${farkli.length?` · <b style="color:var(--warn)">${farkli.length} kişide gün farkı</b>`:es.some(k=>solSatir(k.pid))?' · günler puantajla uyuyor':''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
+     byId('tbOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}${farkli.length?` · <b style="color:var(--bad)">${farkli.length} kişide bordro ile puantaj tutmuyor</b>`:es.some(k=>solSatir(k.pid))?' · günler puantajla uyuyor':''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
        <p class="note" style="margin:0 0 6px">Bordrodaki gün, bayram, yıllık izin, ücretsiz izin, rapor ve çıkış tarihi, puantajda muhasebeye gidenle karşılaştırılır.${eksikS.length?` <b style="color:var(--warn)">${eksikS.map(esc).join(', ')}:</b> ay içinde kapatılmamış ya da işlenmemiş hafta var, puantaj günleri eksik çıkabilir (şubeyi bir kez açın).`:''}${ozetsiz.length?` Çizelge özeti olmayan şubeler karşılaştırılamadı: ${ozetsiz.map(esc).join(', ')}.`:''}</p>
        <div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th class="l">Yazılacak şube</th><th>Bordro gün</th><th>Puantaj gün</th><th>Net ödenen</th></tr></thead><tbody>${[...yok,...satirlar.filter(k=>k.pid&&k.tekrar),...farkli,...es.filter(k=>!farkli.includes(k))].map(satir).join('')}</tbody></table></div>
        <div class="row2"><button class="btn grow" id="tbEk">+ PDF ekle</button><button class="btn grow" id="tbPay">Paylaş</button><button class="btn primary grow" id="tbOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';

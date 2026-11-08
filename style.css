@@ -92,7 +92,7 @@ button.nm{text-align:left;display:block;width:100%}
 .kpi span{font-size:12px;color:var(--mut)}.kpi b{display:block;font-size:20px;margin-top:2px;font-variant-numeric:tabular-nums}
 .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--code);color:var(--code-ink)}
-.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}.tag.bad{background:var(--bad-bg);color:var(--bad)}
 .note{font-size:12px;color:var(--mut);margin:10px 4px;line-height:1.45}
 
 /* Puantaj tablosu */
