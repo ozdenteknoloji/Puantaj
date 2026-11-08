@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=246;
+const APP_SURUM=247;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2555,7 +2555,7 @@ const yuksekTag=v=>v!=null&&sayi(v)>BORDRO_UST_SINIR?'<br><span class="tag warn"
 /* Toplu bordro: tüm şubelerin PDF'leri tek seferde. Kişiler yetkili olunan tüm şubelerdeki o ay SGK'lı personel içinde (önce TC, sonra isim) bulunur;
    net tutar kişinin maaş şubesinin veri girişine "Bankaya yatan" olarak yazılır (gideceği şube satırda değiştirilebilir). Eşleşmeyen satırda kişi elle seçilir. */
 function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||'').toLocaleUpperCase('tr-TR');
-  const aday=S.personel.filter(p=>sgkVar(p)&&sid.has(p.sgkSube)&&aktifAyda(p,ak)).sort((a,b)=>String(a.ad).localeCompare(String(b.ad),'tr'));tcYukle(aday);
+  const adayOf=()=>S.personel.filter(p=>sgkVar(p)&&sid.has(p.sgkSube)&&aktifAyda(p,ak)).sort((a,b)=>String(a.ad).localeCompare(String(b.ad),'tr'));let aday=adayOf();tcYukle(aday);let ayNot='';
   const byP=id=>S.personel.find(q=>q.id===id);const tcOfP=p=>p?tcOf(p):'';let satirlar=[];const okunan=[];
   const hedefVars=pid=>{const p=byP(pid);if(!p)return'';const h=odemeSubesi(p,ak);return sid.has(h)?h:(sid.has(p.sgkSube)?p.sgkSube:h);};
   // Gün karşılaştırması: kişinin SGK şubesinin onaylı puantajında saklanan muhasebe günü (bordro bu listeden yapılır). Onaylanmamış ayda karşılaştırılmaz.
@@ -2585,8 +2585,13 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
      for(const f of files){byId('tbOut').innerHTML=`<p class="note">${esc(f.name)} okunuyor…</p>`;let r;try{r=await bordroOku(f,m=>{byId('tbOut').innerHTML=`<p class="note">${esc(f.name)}: ${esc(m)} (ilk seferde birkaç saniye sürebilir)</p>`;});}catch(err){okunan.push({ad:f.name,hata:'okunamadı (taranmış PDF olabilir)'});continue;}
        if(!r.kisiler.length){okunan.push({ad:f.name,hata:bulunamadi(f)});continue;}
        const top=r.kisiler.reduce((t,k)=>t+(k.net||0),0);okunan.push({ad:f.name,isyeri:r.isyeri,donem:r.donem,n:r.kisiler.length,toplamOk:r.toplam==null||Math.abs(top-r.toplam)<0.05,toplam:r.toplam,top});
-       r.kisiler.forEach(k=>{const e=eslestir(k);satirlar.push({...k,...e,isyeri:k.isyeri||r.isyeri||f.name,netYazi:k.net,hedef:e.pid?hedefVars(e.pid):''});});}
+       r.kisiler.forEach(k=>{const e=eslestir(k);satirlar.push({...k,...e,uyari0:k.uyari||[],isyeri:k.isyeri||r.isyeri||f.name,netYazi:k.net,hedef:e.pid?hedefVars(e.pid):''});});}
+     // Bütün bordrolar başka bir aya aitse (ör. ekranda Ağustos açık, bordrolar Ekim) pencere o aya geçer; elle seçim yapılmışsa geçmez.
+     {const dks=[...new Set(satirlar.map(k=>k.donemKey).filter(Boolean))];if(dks.length===1&&dks[0]!==ak&&!satirlar.some(k=>k.yol==='elle'))await ayGec(dks[0]);}
      await sollar();ciz();};
+   const ayGec=async y=>{const eski=ak;ak=y;aday=adayOf();try{await tcYukle(aday);}catch(e){}Object.keys(solC).forEach(k=>delete solC[k]);Object.keys(eksikHafta).forEach(k=>delete eksikHafta[k]);ozP=null;
+     satirlar=satirlar.map(k=>{const e=eslestir({...k,uyari:k.uyari0});return{...k,...e,hedef:e.pid?hedefVars(e.pid):''};});
+     ayNot=`Bordrolar ${ayAdi(y)} ayına ait; pencere ${ayAdi(eski)} yerine ${ayAdi(y)} için açıldı.`;const sb=sh.querySelector('.sub');if(sb)sb.firstChild.textContent=sb.firstChild.textContent.replace(ayAdi(eski),ayAdi(y));};
    const sollar=()=>Promise.all([...new Set(satirlar.filter(k=>k.pid).map(k=>(byP(k.pid)||{}).sgkSube))].map(solGetir));
    const ciz=()=>{const gor={};satirlar.forEach(k=>{k.tekrar=false;if(!k.pid)return;if(gor[k.pid])k.tekrar=true;else gor[k.pid]=1;});
      byId('tbDrop').classList.toggle('kucuk',okunan.length>0);
@@ -2606,7 +2611,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
          <td>${bordroOzet(k)}</td><td>${puGun(k)}</td>
          <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':tl(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin">${yuksekTag(k.netYazi)}</td></tr>`;};
      const hs={};es.forEach(k=>{hs[k.hedef]=(hs[k.hedef]||0)+1;});
-     byId('tbOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}${farkli.length?` · <b style="color:var(--bad)">${farkli.length} kişide bordro ile puantaj tutmuyor</b>`:es.some(k=>solSatir(k.pid))?' · günler puantajla uyuyor':''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
+     byId('tbOut').innerHTML=satirlar.length?`${ayNot?`<div class="banner ok" style="margin:8px 0 4px">${esc(ayNot)}</div>`:''}<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}${farkli.length?` · <b style="color:var(--bad)">${farkli.length} kişide bordro ile puantaj tutmuyor</b>`:es.some(k=>solSatir(k.pid))?' · günler puantajla uyuyor':''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
        <p class="note" style="margin:0 0 6px">Bordrodaki gün, bayram, yıllık izin, ücretsiz izin, rapor ve çıkış tarihi, puantajda muhasebeye gidenle karşılaştırılır.${eksikS.length?` <b style="color:var(--warn)">${eksikS.map(esc).join(', ')}:</b> ay içinde kapatılmamış ya da işlenmemiş hafta var, puantaj günleri eksik çıkabilir (şubeyi bir kez açın).`:''}${ozetsiz.length?` Çizelge özeti olmayan şubeler karşılaştırılamadı: ${ozetsiz.map(esc).join(', ')}.`:''}</p>
        <div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th class="l">Yazılacak şube</th><th>Bordro gün</th><th>Puantaj gün</th><th>Net ödenen</th></tr></thead><tbody>${[...yok,...satirlar.filter(k=>k.pid&&k.tekrar),...farkli,...es.filter(k=>!farkli.includes(k))].map(satir).join('')}</tbody></table></div>
        <div class="row2"><button class="btn grow" id="tbEk">+ PDF ekle</button><button class="btn grow" id="tbPay">Paylaş</button><button class="btn primary grow" id="tbOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
