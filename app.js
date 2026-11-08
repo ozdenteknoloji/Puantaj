@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=230;
+const APP_SURUM=231;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2406,6 +2406,8 @@ async function pusulaOcr(file,durum){const lib=await pdfjs();const pdf=await lib
     const net=await para('net'),kazanc=await para('kazanc'),kesinti=await para('kesinti');const ssk=(await oku(cv,'ssk','0123456789')).match(/\d+/);const ek=(await oku(cv,'eksik')).match(/Eksik\s*G\S*\s*:?\s*(\d+)/i);
     out.kisiler.push(pusulaKayit({ad,isyeri:await oku(cv,'isyeri'),donem:await oku(cv,'donem','0123456789/'),tc:((await oku(cv,'tc','0123456789')).match(/\d{11}/)||[''])[0],ssk:ssk?+ssk[0]:null,eksik:ek?+ek[1]:0,net,kazanc,kesinti,ocr:true}));}
   if(out.kisiler.length){out.isyeri=out.kisiler[0].isyeri;const dk=out.kisiler[0].donemKey;out.donem=dk?dk.slice(5)+'/'+dk.slice(0,4):null;}return out;}
+// Bordro satırı çıkmayan dosya: uygulamanın kendi puantaj çıktısı yanlışlıkla seçildiyse bunu söyler.
+const bulunamadi=f=>/puantaj|çizelge|cizelge/i.test(f.name)?'bu bordro değil, puantaj çıktısı: muhasebeden gelen maaş bordrosunu seçin':'bordro satırı bulunamadı: muhasebeden gelen maaş bordrosu mu?';
 // Önce toplu bordro listesi, olmazsa tekli pusula (yazı katmanı varsa metinden, yoksa görselden OCR ile).
 async function bordroOku(file,durum){const lines=await pdfSatirlari(file);const r=bordroCoz(lines);if(r.kisiler.length)return r;
   const p=pusulaCoz(lines);if(p.kisiler.length)return p;
@@ -2435,7 +2437,7 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
    const oku=async files=>{files=files.filter(f=>/pdf$/i.test(f.name)||f.type==='application/pdf');if(!files.length){toast('PDF dosyası seçin.');return;}
      byId('bOut').innerHTML='<p class="note">PDF okunuyor…</p>';
      for(const f of files){let r;try{r=await bordroOku(f,m=>{byId('bOut').innerHTML=`<p class="note">${esc(m)} (ilk seferde birkaç saniye sürebilir)</p>`;});}catch(err){okunan.push({ad:f.name,hata:'okunamadı (taranmış PDF olabilir)'});continue;}
-       if(!r.kisiler.length){okunan.push({ad:f.name,hata:'bordro satırı bulunamadı'});continue;}
+       if(!r.kisiler.length){okunan.push({ad:f.name,hata:bulunamadi(f)});continue;}
        const top=r.kisiler.reduce((s,k)=>s+(k.net||0),0);okunan.push({ad:f.name,isyeri:r.isyeri,donem:r.donem,n:r.kisiler.length,toplamOk:r.toplam==null||Math.abs(top-r.toplam)<0.05,toplam:r.toplam,top});
        r.kisiler.forEach(k=>{const uyari=[...(k.uyari||[])];let pid=null,yol=null;
          // Önce TC (kayıtlıysa), sonra isim. Aynı isimde birden fazla kişi varsa ya da isim tutup TC farklıysa elle seçilir.
@@ -2525,7 +2527,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
      return{uyari,pid,yol};};
    const oku=async files=>{files=files.filter(f=>/pdf$/i.test(f.name)||f.type==='application/pdf');if(!files.length){toast('PDF dosyası seçin.');return;}
      for(const f of files){byId('tbOut').innerHTML=`<p class="note">${esc(f.name)} okunuyor…</p>`;let r;try{r=await bordroOku(f,m=>{byId('tbOut').innerHTML=`<p class="note">${esc(f.name)}: ${esc(m)} (ilk seferde birkaç saniye sürebilir)</p>`;});}catch(err){okunan.push({ad:f.name,hata:'okunamadı (taranmış PDF olabilir)'});continue;}
-       if(!r.kisiler.length){okunan.push({ad:f.name,hata:'bordro satırı bulunamadı'});continue;}
+       if(!r.kisiler.length){okunan.push({ad:f.name,hata:bulunamadi(f)});continue;}
        const top=r.kisiler.reduce((t,k)=>t+(k.net||0),0);okunan.push({ad:f.name,isyeri:r.isyeri,donem:r.donem,n:r.kisiler.length,toplamOk:r.toplam==null||Math.abs(top-r.toplam)<0.05,toplam:r.toplam,top});
        r.kisiler.forEach(k=>{const e=eslestir(k);satirlar.push({...k,...e,isyeri:k.isyeri||r.isyeri||f.name,netYazi:k.net,hedef:e.pid?hedefVars(e.pid):''});});}
      await sollar();ciz();};
