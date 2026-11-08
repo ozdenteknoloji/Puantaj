@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=237;
+const APP_SURUM=238;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2432,9 +2432,9 @@ function bordroCoz(lines){const para=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;const out={i
       const neden=(on+' '+dev.join(' ')).replace(/\s+/g,' ').trim();
       const sb={cikis:ck?`${ck[3]}-${ck[2]}-${ck[1]}`:'',ad:ad.replace(/\s+/g,' ').trim(),tc:m[3],giris:m[4],sgkGun:g?+g[3]:null,eksikGun:0,neden,net:nums.length?sayi(nums[nums.length-1]):null,
         ucret:g?sayi(g[1]):0,detay:true,bayram:0,yillik:0,ucretsiz:0,rapor:0,eksikKarisik:0};
-      // "N Gün <neden>" parçaları: ücretsiz izin ve rapor ayrı sayılır; kısmi istihdam (part) eksik gün değildir; tanınmayan neden (devamsızlık, birden fazla vb.)
+      // "N Gün <neden>" parçaları: ücretsiz izin ve rapor ayrı sayılır; kısmi istihdam / puantaj kayıtları (part) eksik gün değildir; tanınmayan neden (devamsızlık, birden fazla vb.)
       // toplu karşılaştırılır (puantajdaki rapor + ücretsiz izin ile).
-      const re=/(\d+)\s*Gün\s+(.*?)(?=\s+\d+\s*Gün\b|$)/g;let q;while((q=re.exec(neden))){const n=+q[1],t=q[2];if(/Kısmi/i.test(t))continue;sb.eksikGun+=n;
+      const re=/(\d+)\s*Gün\s+(.*?)(?=\s+\d+\s*Gün\b|$)/g;let q;while((q=re.exec(neden))){const n=+q[1],t=q[2];if(/Kısmi|Puantaj\s*Kay/i.test(t))continue;// part: "Kısmi İstihdam" ya da "Puantaj Kayıtları" eksik gün değildirsb.eksikGun+=n;
         if(/Ücretsiz/i.test(t))sb.ucretsiz+=n;else if(/Rapor|İstirahat|Hastal/i.test(t))sb.rapor+=n;else sb.eksikKarisik+=n;}
       son=sb;out.kisiler.push(son);}
     if((m=l.match(/Toplamlar:/))){son=null;const nums=l.match(para)||[];if(nums.length)out.toplam=sayi(nums[nums.length-1]);}});
@@ -2531,7 +2531,7 @@ const farkMetin=f=>`${f.ad}: bordro ${f.b}, puantaj ${f.p}`;
 // Bordrodaki gün bayramı içermez (bayram ayrı satırda tutar olarak yazar), puantajdaki "gün" de öyle: ikisi ayrı ayrı karşılaştırılır.
 const GUN_KARS=[['gun','sgkGun','gün'],['bayram','bayram','bayram'],['yillik','yillik','yıllık izin'],['ucretsiz','ucretsiz','ücretsiz izin'],['rapor','rapor','rapor']];
 function bordroFark(k,r){if(!r)return[];const F=[];
-  if(k.detay&&k.eksikKarisik){const b=k.eksikKarisik+(k.rapor||0)+(k.ucretsiz||0),p=(+r.rapor||0)+(+r.ucretsiz||0);if(Math.abs(b-p)>0.001)F.push({ad:'eksik gün (rapor + ücr. izin)',b:fmt(b),p:fmt(p)});}
+  if(k.detay&&k.eksikKarisik&&!(r.partGun>0)){/* part gösterilen kişide tanınmayan eksik gün nedeni part günleridir, karşılaştırılmaz */const b=k.eksikKarisik+(k.rapor||0)+(k.ucretsiz||0),p=(+r.rapor||0)+(+r.ucretsiz||0);if(Math.abs(b-p)>0.001)F.push({ad:'eksik gün (rapor + ücr. izin)',b:fmt(b),p:fmt(p)});}
   GUN_KARS.forEach(([pk,bk,ad])=>{if(bk!=='sgkGun'&&!k.detay)return;if(k.eksikKarisik&&(bk==='rapor'||bk==='ucretsiz'))return;const b=k[bk];if(b==null)return;const p=+(r[pk]||0);if(Math.abs((+b||0)-p)>0.001)F.push({ad,b:fmt(+b||0),p:fmt(p)});});
   // Çıkış tarihi (sadece liste bordrosunda yazar). Puantajda sonraki bir aya yazılmış çıkış bu ayın bordrosunda görünmez, karşılaştırılmaz.
   if(k.detay){const pc=r.cikis&&(!k.donemKey||String(r.cikis).slice(0,7)<=k.donemKey)?String(r.cikis):'';if((k.cikis||'')!==pc)F.push({ad:'çıkış',b:trTarih(k.cikis)||'yok',p:trTarih(pc)||'yok'});}return F;}
