@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=235;
+const APP_SURUM=236;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2506,24 +2506,25 @@ const BORDRO_UST_SINIR=33000;
 // Bordro kontrolü fotoğrafı (tüm liste): tutmayanlar üstte kırmızı, tutanlar, en altta bordroda olup personelde eşleşmeyenler.
 // R: [{ad, alt, b:bordro metni, p:puantaj metni, net, fark:[metin]}], E: [{ad, alt, net}]
 const gunYazi=(g,o)=>[`${g??''}${o&&o.bayram>0?` +${fmt(o.bayram)} bayram`:''}`,o&&o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o&&o.eksikKarisik?`${fmt(o.eksikKarisik)} gün diğer eksik`:'',o&&o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o&&o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean).join(' · ');
-function bordroKontrolGorseli(baslik,altBaslik,R,E){const W=1400,P=40,sc=2;const F='Figtree, Arial, sans-serif';
+function bordroKontrolGorseli(baslik,altBaslik,R,E){const W=2400,P=44,sc=2;const F='Figtree, Arial, sans-serif';
   const T=R.filter(r=>r.fark.length),U=R.filter(r=>!r.fark.length);const bol=[];
   if(T.length)bol.push({ad:`Tutmayanlar · ${T.length}`,tip:'t',r:T});bol.push({ad:`Tutanlar · ${U.length}`,tip:'u',r:U});if(E.length)bol.push({ad:`Personelde eşleşmeyen · ${E.length}`,tip:'e',r:E});
-  const rh=r=>r.fark&&r.fark.length?96+r.fark.length*32:84;const SH=56,HH=48;
-  const H=P+130+HH+bol.reduce((t,b)=>t+SH+(b.r.length?b.r.reduce((x,r)=>x+(b.tip==='e'?70:rh(r)),0):70),0)+P+30;
+  // Yatay düzen: her kişi tek satır; fark kendi sütununda (birden fazla fark alt alta).
+  const X={ad:P,sb:560,b:760,p:1220,f:1680,n:W-P},RH=66,FL=30,SH=54,HH=52;const rh=r=>RH+Math.max(0,(r.fark||[]).length-1)*FL;
+  const H=P+120+HH+bol.reduce((t,b)=>t+SH+(b.r.length?b.r.reduce((x,r)=>x+rh(r),0):RH),0)+P+30;
   const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;const c=cv.getContext('2d');c.scale(sc,sc);c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='middle';
-  c.fillStyle='#1f3a6b';c.font=`800 40px ${F}`;c.fillText(baslik,P,P+28);c.fillStyle='#6b7280';c.font=`600 25px ${F}`;c.fillText(altBaslik,P,P+78);
-  c.textAlign='right';c.font=`800 28px ${F}`;if(T.length){c.fillStyle='#b42318';c.fillText(`${T.length} kişide fark var`,W-P,P+28);}else{c.fillStyle='#067647';c.fillText('Hepsi tutuyor ✓',W-P,P+28);}c.textAlign='left';
-  const X={ad:P,b:640,p:900,n:W-P};let y=P+130;
-  c.fillStyle='#1f3a6b';c.fillRect(0,y,W,HH);c.fillStyle='#fff';c.font=`800 21px ${F}`;c.fillText('AD SOYAD',X.ad,y+HH/2);c.fillText('BORDRO',X.b,y+HH/2);c.fillText('PUANTAJ',X.p,y+HH/2);c.textAlign='right';c.fillText('NET ÖDENEN',X.n,y+HH/2);c.textAlign='left';y+=HH;
+  c.fillStyle='#1f3a6b';c.font=`800 44px ${F}`;c.fillText(baslik,P,P+26);c.fillStyle='#6b7280';c.font=`600 26px ${F}`;c.fillText(altBaslik,P,P+76);
+  c.textAlign='right';c.font=`800 32px ${F}`;if(T.length){c.fillStyle='#b42318';c.fillText(`${T.length} kişide fark var`,W-P,P+26);}else{c.fillStyle='#067647';c.fillText('Hepsi tutuyor ✓',W-P,P+26);}c.textAlign='left';
+  let y=P+120;c.fillStyle='#1f3a6b';c.fillRect(0,y,W,HH);c.fillStyle='#fff';c.font=`800 22px ${F}`;
+  [['AD SOYAD',X.ad],['ŞUBE',X.sb],['BORDRO',X.b],['PUANTAJ',X.p],['FARK',X.f]].forEach(([t,x])=>c.fillText(t,x,y+HH/2));c.textAlign='right';c.fillText('NET ÖDENEN',X.n,y+HH/2);c.textAlign='left';y+=HH;
   bol.forEach(b=>{c.fillStyle=b.tip==='t'?'#fdecea':b.tip==='e'?'#f4f4f5':'#eef1f6';c.fillRect(0,y,W,SH);c.font=`800 22px ${F}`;c.fillStyle=b.tip==='t'?'#b42318':b.tip==='e'?'#6b7280':'#4b5563';c.fillText(b.ad.toLocaleUpperCase('tr-TR'),P,y+SH/2);y+=SH;
-    if(!b.r.length){c.fillStyle='#6b7280';c.font=`600 24px ${F}`;c.fillText('Kimse yok.',P,y+35);y+=70;return;}
-    b.r.forEach(r=>{const h=b.tip==='e'?70:rh(r);if(b.tip==='t'){c.fillStyle='#fff7f6';c.fillRect(0,y,W,h);}c.fillStyle='#e5e7eb';c.fillRect(0,y+h-1,W,1);
-      if(b.tip==='e'){c.fillStyle='#6b7280';c.font=`700 27px ${F}`;c.fillText(r.ad,X.ad,y+26);c.font=`600 20px ${F}`;c.fillText(r.alt||'',X.ad,y+54);c.textAlign='right';c.font=`700 27px ${F}`;c.fillText(r.net==null?'':tl(r.net),X.n,y+h/2);c.textAlign='left';y+=h;return;}
-      c.fillStyle='#111827';c.font=`800 28px ${F}`;c.fillText(r.ad,X.ad,y+30,X.b-X.ad-20);c.fillStyle='#6b7280';c.font=`600 20px ${F}`;c.fillText(r.alt||'',X.ad,y+62,X.b-X.ad-20);
-      c.fillStyle='#111827';c.font=`700 25px ${F}`;c.fillText(r.b||'',X.b,y+30,X.p-X.b-16);c.fillText(r.p||'—',X.p,y+30,X.n-180-X.p);
-      c.textAlign='right';c.font=`800 28px ${F}`;c.fillText(r.net==null?'':tl(r.net),X.n,y+30);c.textAlign='left';
-      r.fark.forEach((f,i)=>{c.fillStyle='#b42318';c.font=`800 23px ${F}`;c.fillText('• '+f,X.b,y+96+i*32-14);});y+=h;});});
+    if(!b.r.length){c.fillStyle='#6b7280';c.font=`600 24px ${F}`;c.fillText('Kimse yok.',P,y+RH/2);y+=RH;return;}
+    b.r.forEach((r,i)=>{const h=rh(r);if(b.tip==='t')c.fillStyle='#fff7f6';else c.fillStyle=i%2?'#fafbfc':'#fff';c.fillRect(0,y,W,h);c.fillStyle='#e5e7eb';c.fillRect(0,y+h-1,W,1);const m=y+RH/2;
+      const ink=b.tip==='e'?'#6b7280':'#111827';c.fillStyle=ink;c.font=`800 28px ${F}`;c.fillText(r.ad,X.ad,m,X.sb-X.ad-20);
+      c.fillStyle='#4b5563';c.font=`600 24px ${F}`;c.fillText(r.alt||'',X.sb,m,X.b-X.sb-20);
+      if(b.tip!=='e'){c.fillStyle=ink;c.font=`700 26px ${F}`;c.fillText(r.b||'',X.b,m,X.p-X.b-24);c.fillText(r.p||'—',X.p,m,X.f-X.p-24);
+        if(r.fark.length){c.fillStyle='#b42318';c.font=`800 24px ${F}`;r.fark.forEach((f,j)=>c.fillText(f,X.f,m+j*FL,X.n-240-X.f));}else{c.fillStyle='#067647';c.font=`800 24px ${F}`;c.fillText('✓',X.f,m);}}
+      c.fillStyle=ink;c.textAlign='right';c.font=`800 28px ${F}`;c.fillText(r.net==null?'':tl(r.net),X.n,m);c.textAlign='left';y+=h;});});
   c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
 const farkMetin=f=>`${f.ad}: bordro ${f.b}, puantaj ${f.p}`;
 // Bordro ↔ puantaj gün karşılaştırması. Liste bordrosunda (detay) gün, bayram, yıllık izin, ücretsiz izin ve rapor; tek kişilik pusulada sadece gün.
