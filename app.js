@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=259;
+const APP_SURUM=260;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2368,8 +2368,9 @@ async function odemeGorseli(V,L,sade){try{await document.fonts.ready;}catch(e){}
   const gunY=x=>x.hes.saat?fmt(x.hes.saatSayi)+' sa':x.hes.esnaf||x.hes.maasYok?'—':String(x.sol.hakGun!=null?x.sol.hakGun:x.sol.gun)+(!x.hes.pb&&x.sol.bayram>0?`+${fmt(x.sol.bayram)}`:'');const t2=v=>Math.abs(v||0)>0.004?tl(v):'';
   // Maaş farkı: veri girişindeki maaş farkı (elden bayram ücreti, yol desteği, kesinti…) + ek ödeme / kesinti. Sadece birinde varsa sütun çıkar.
   const mfY=h=>(h.mfVeri||0)+(h.ekOd||0);const mfVar=!sade&&L.some(x=>Math.abs(mfY(x.hes))>0.004);
-  const bas=sade?['#','ADI SOYADI','GÜN','ÖDENECEK']:['#','ADI SOYADI','GÜN','HAK EDİLEN','BANKAYA YATAN',...(mfVar?['MAAŞ FARKI']:[]),'FAZLA MESAİ','PRİM','AVANS + ARA ÖD.','ÖDENECEK'];
-  const veri=L.map((x,i)=>{const h=x.hes;const ad=String(x.sol.ad).toLocaleUpperCase('tr-TR');return sade?[i+1,ad,gunY(x),tl(h.kalan)]:[i+1,ad,gunY(x),h.pb?'':t2(h.hak),t2(h.bankaya),...(mfVar?[t2(mfY(h))]:[]),t2(h.fmTl),t2(h.paketPrimi+h.ciroPrimi),t2(h.avans+h.araOdeme),tl(h.kalan)];});
+  const ppVar=!sade&&L.some(x=>Math.abs(x.hes.paketPrimi||0)>0.004),cpVar=!sade&&L.some(x=>Math.abs(x.hes.ciroPrimi||0)>0.004);
+  const bas=sade?['#','ADI SOYADI','GÜN','ÖDENECEK']:['#','ADI SOYADI','GÜN','HAK EDİLEN','BANKAYA YATAN',...(mfVar?['MAAŞ FARKI']:[]),'FAZLA MESAİ',...(ppVar?['PAKET PRİMİ']:[]),...(cpVar?['CİRO PRİMİ']:[]),'AVANS + ARA ÖD.','ÖDENECEK'];
+  const veri=L.map((x,i)=>{const h=x.hes;const ad=String(x.sol.ad).toLocaleUpperCase('tr-TR');return sade?[i+1,ad,gunY(x),tl(h.kalan)]:[i+1,ad,gunY(x),h.pb?'':t2(h.hak),t2(h.bankaya),...(mfVar?[t2(mfY(h))]:[]),t2(h.fmTl),...(ppVar?[t2(h.paketPrimi)]:[]),...(cpVar?[t2(h.ciroPrimi)]:[]),t2(h.avans+h.araOdeme),tl(h.kalan)];});
   const son=bas.length-1;const fH=F(800,10.5),fA=F(700,12),fD=F(600,11.5),fK=F(800,12.5);
   const cw=bas.map((b,j)=>Math.ceil(Math.max(olc(b,fH),...veri.map(r=>olc(r[j],j===1?fA:j===son?fK:fD)),j===1?150:24)+(j===1?22:18)));
   const Tp=odToplam(L);const kutu=sade?[['Ödenecek toplam',tl0(Tp.nakit)],['Kişi',String(L.length)]]:[['Hak ediş',tl0(Tp.hak)],['Bankaya yatan',tl0(Tp.bankaya)],['Avans + ara ödeme',tl0(Tp.avans)],['Ödenecek toplam',tl0(Tp.nakit)]];
@@ -2391,7 +2392,7 @@ async function odemeGorseli(V,L,sade){try{await document.fonts.ready;}catch(e){}
   L.forEach((r,i)=>{x.fillStyle=i%2?T.zebra:'#fff';x.fillRect(ox,y,tw,rowH);cx=ox;veri[i].forEach((v,j)=>{x.textAlign=hiz(j);const neg=j===son&&r.hes.kalan<-0.004;x.fillStyle=j===0?T.not:neg?'#c0392b':'#14202f';x.font=j===1?fA:j===son?fK:fD;x.fillText(String(v),tx(j,cx),y+rowH/2+.5);cx+=cw[j];});
     x.fillStyle=T.cizgi;x.fillRect(ox,y+rowH-1,tw,1);y+=rowH;});
   // toplam satırı
-  x.fillStyle=T.th;x.fillRect(ox,y,tw,thH);x.fillStyle=T.thYazi;x.font=fK;const tr=sade?['','TOPLAM','',tl(Tp.kalan)]:['','TOPLAM','',tl(L.reduce((a,q)=>a+(q.hes.pb?0:q.hes.hak),0)),tl(Tp.bankaya),...(mfVar?[t2(L.reduce((a,q)=>a+mfY(q.hes),0))]:[]),t2(L.reduce((a,q)=>a+q.hes.fmTl,0)),t2(L.reduce((a,q)=>a+q.hes.paketPrimi+q.hes.ciroPrimi,0)),tl(Tp.avans),tl(Tp.kalan)];
+  x.fillStyle=T.th;x.fillRect(ox,y,tw,thH);x.fillStyle=T.thYazi;x.font=fK;const tr=sade?['','TOPLAM','',tl(Tp.kalan)]:['','TOPLAM','',tl(L.reduce((a,q)=>a+(q.hes.pb?0:q.hes.hak),0)),tl(Tp.bankaya),...(mfVar?[t2(L.reduce((a,q)=>a+mfY(q.hes),0))]:[]),t2(L.reduce((a,q)=>a+q.hes.fmTl,0)),...(ppVar?[t2(L.reduce((a,q)=>a+q.hes.paketPrimi,0))]:[]),...(cpVar?[t2(L.reduce((a,q)=>a+q.hes.ciroPrimi,0))]:[]),tl(Tp.avans),tl(Tp.kalan)];
   cx=ox;tr.forEach((v,j)=>{x.textAlign=hiz(j);x.fillText(v,tx(j,cx),y+thH/2+.5);cx+=cw[j];});
   cx=ox;x.fillStyle=T.cizgi;cw.slice(0,-1).forEach(w=>{cx+=w;x.fillRect(cx,top+thH,1,L.length*rowH);});x.strokeStyle=T.cizgi;x.strokeRect(ox+.5,top+.5,tw-1,thH*2+L.length*rowH-1);
   y+=thH+22;x.textAlign='left';x.fillStyle=T.not;x.font=F(500,10.5);if(Tp.kalan<Tp.nakit-0.004)x.fillText('Ödenecek toplam: kalanı artı olanların toplamı (eksi kalanlar ödenmez, sonraki aya devreder).',ox,y);if(L.some(q=>!q.hes.pb&&q.sol.bayram>0)){y+=15;x.fillText('Gün "30+1": bayramda çalışılan gün, hak edişe bir günlük ücret eklendi.',ox,y);}
