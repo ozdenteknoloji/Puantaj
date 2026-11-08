@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=238;
+const APP_SURUM=239;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -439,7 +439,7 @@ function solHesap(ak,sid=S.subeId,diger=S.pt.ozetler||{},ekIds=[],burada0=null){
   return out;}
 // Muhasebeye giden tarafta sadece SGK'sı bu şubede olanlar; başka şubenin SGK'lısı ve SGK'sı olmayanlar sadece ödemelerde.
 // Maaşı bu şubede ödenen, o ay SGK günü olan ama bankaya yatanı girilmemiş kişi: Ödemeler'de "Bankaya yatan" hücresinde kırmızı "?" (engellemez). Esnaf kurye ve SGK'sızlar hariç.
-function bankayaEksikMi(x){return !!(x&&x.sol&&x.hes&&x.sol.maasBurada!==false&&!x.hes.esnaf&&!x.sol.sgkYok&&x.sol.sekil!=='Esnaf kurye'&&x.sol.gunTaban&&x.sol.gunTaban.ist>0&&(x.sol.gun||0)>0&&Math.abs(x.hes.bankaya||0)<0.005);}
+function bankayaEksikMi(x){return !!(x&&x.sol&&x.hes&&x.sol.maasBurada!==false&&!x.hes.esnaf&&!x.sol.sgkYok&&x.sol.sekil!=='Esnaf kurye'&&x.sol.gunTaban&&x.sol.gunTaban.ist>0&&(x.sol.gun||0)>0&&Math.abs(x.hes.bankaya||0)<0.005&&!x.hes.byVar);}// bankaya yatan 0 olarak girilmişse (bordroda net 0) eksik sayılmaz
 // Muhasebede görev adı: kuryeler muhasebenin kullandığı şekilde "Sürücü" yazılır
 function muhGorev(sol){const g=sol.gorev||'';return /kurye/i.test(g)?'Sürücü':g;}
 function muhasebedeMi(sol){if(sol.sekil==='Esnaf kurye')return false;/* esnaf kurye muhasebede (liste, kontrol, PDF) görünmez; sadece Ödemeler tarafında */const g=sol.gunTaban;if(g&&g.ist===0&&!g.iS)return false;/* ay içinde hiç SGK günü yok (SGK girişi sonraki ayda): muhasebede görünmez, ödemelerde kalır */return (sol.muhBurada!=null?sol.muhBurada:sol.maasBurada!==false)&&sol.sgkYok!==true;}
@@ -468,7 +468,7 @@ function sagHesap(pid,sol,sag,net,sb,devir,ek={},us={},kapi=false){const e=k=>ek
     const fm=fmS()/* eksi mesai de işlenir */;fmTl=fm*(sb.fmYontem==='maas'&&s.fmMod==='elle'&&s.fmBirim!==undefined?sayi(s.fmBirim):fmKisiUcreti(sb,n,us));}
   const maasYok=!esnaf&&!saat&&!pb&&sol.maasBurada===false;const bank2=maasYok?0:bankaya;
   fmTl+=e('FMT');maasFarki+=e('MF');const ekOd=e('EK')-e('KS');const pp=paketPrimi;const pbBanka=pb&&!esnaf?bankaya:0;const kalanHam=maasFarki+fmTl+pp+ciroPrimi-avans-araOdeme+ekOd-pbBanka;const kalan=Math.round(kalanHam/5)*5||0;// kuruş ödenmez: 5 TL'ye yuvarla
-  return{esnaf,maasYok,pb:pb&&!esnaf,saat,saatSayi:(saBekle?0:(sol.calisilanSaat||0))+e('SA'),otoBekle:fmBekle||saBekle?{fm:fmBekle?(sol.fmSaat||0):null,sa:saBekle?(sol.calisilanSaat||0):null}:null,otoRed:fmRed||saRed?{fm:fmRed,sa:saRed}:null,cizelgeSaat:sol.calisilanSaat||0,saatUcret:sayi(us.saatUcret),bankaya:bank2,paketPrimi:pp,kalanHam,ciroPrimi,avans,araOdeme,devirAvans,hak,maasFarki,fmTl,paketHak,devir,kalan,ekOd,netYok:!esnaf&&!maasYok&&!pb&&!saat&&!sayi(net)};}
+  return{byVar:('BY' in (ek||{}))||(sag&&sag.bankaya!=null&&sag.bankaya!==''),esnaf,maasYok,pb:pb&&!esnaf,saat,saatSayi:(saBekle?0:(sol.calisilanSaat||0))+e('SA'),otoBekle:fmBekle||saBekle?{fm:fmBekle?(sol.fmSaat||0):null,sa:saBekle?(sol.calisilanSaat||0):null}:null,otoRed:fmRed||saRed?{fm:fmRed,sa:saRed}:null,cizelgeSaat:sol.calisilanSaat||0,saatUcret:sayi(us.saatUcret),bankaya:bank2,paketPrimi:pp,kalanHam,ciroPrimi,avans,araOdeme,devirAvans,hak,maasFarki,fmTl,paketHak,devir,kalan,ekOd,netYok:!esnaf&&!maasYok&&!pb&&!saat&&!sayi(net)};}
 
 /* ================= Yazma ================= */
 const kuyruk={};function sirayla(key,fn){kuyruk[key]=(kuyruk[key]||Promise.resolve()).then(fn).catch(yazmaHatasi);return kuyruk[key];}
