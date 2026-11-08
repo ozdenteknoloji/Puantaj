@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=251;
+const APP_SURUM=252;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1687,6 +1687,9 @@ function saklananFark(V){if(!(V.kilitli||V.kesin))return[];const yeni=ptSol(V.ak
 /* ================= Çoklu şube (Puantaj): Veri girişi, Muhasebe, Ödemeler birden fazla şube için birlikte =================
    Sadece görüntüleme ve paylaşım: düzeltme, onay ve kilit şube başına (satıra tıklayınca o şube açılır).
    Onaylı ayda saklanan rakamlar; onaylanmamış ayda şubenin saklanan ay özeti (onaylı haftalardan) + veri girişi ile aynı hesap. */
+// Sayfa içindeki (telefonda görünen) şube kutusu: basınca çoklu şube seçimi açılır. PC'de bunun yerine başlıktaki kutu.
+function ptSubeKutu(){return `<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsel"><button class="ptsel-btn" id="ptSubeBtn" aria-label="Şube seç">${esc(cokluEtiket())}</button></div></div>`;}
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('#ptSubeBtn');if(b)cokluSecici(b);});
 function cokluAcik(){const c=S.pt.coklu;if(!Array.isArray(c))return false;const L=c.filter(x=>S.subeIds.includes(x));if(L.length<2){S.pt.coklu=null;return false;}S.pt.coklu=L;return true;}
 function cokluEtiket(){if(!cokluAcik())return subeAdi(S.pt.sube);const L=S.pt.coklu;if(L.length===S.subeIds.length)return'TÜM ŞUBELER';return L.length<=3?L.map(subeAdi).join(', '):`${L.length} ŞUBE`;}
 function cokluSecici(btn){const sec=new Set(cokluAcik()?S.pt.coklu:[S.pt.sube]);
@@ -1719,7 +1722,7 @@ function cokluSubeVerisi(sid,ak,D,maas,prev,O){const sav=S.pt.maas;S.pt.maas=maa
     return{sid,ak,kilitli,sol,satir,sb,D,oz,durum:kilitli?'onayli':tahmini?'tahmini':'onayli'};}
   finally{S.pt.maas=sav;}}
 function renderCoklu(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.join(',');const g=S.pt.gorunum||'sag';
-  let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${L.length} şube</span></div><div class="ptnav"><div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
+  let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${L.length} şube</span></div><div class="ptnav">${ptSubeKutu()}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
   h+=`<div class="seg" style="margin:4px 0 12px" id="ptSeg"><button data-v="veri" class="${g==='veri'?'on':''}">Veri girişi</button><button data-v="sol" class="${g==='sol'?'on':''}">Muhasebe</button><button data-v="sag" class="${g==='sag'?'on':''}">Ödemeler</button></div>`;
   const bagla=()=>{byId('geriL').onclick=listeyeDon;const ad=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;S.ay=y;S.ayElle=true;S.pt.ck=null;puantajAc(S.pt.sube);};byId('ptPrev').onclick=()=>ad(-1);byId('ptNext').onclick=()=>ad(1);
     document.querySelectorAll('#ptSeg button').forEach(b=>b.onclick=()=>{S.pt.gorunum=b.dataset.v;render();});};
@@ -1758,7 +1761,7 @@ function renderCoklu(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.join(
     byId('ptMenu').onclick=e=>noktaMenu(e.currentTarget,`<button data-m="tek"><span>↩</span>Tek şubeye dön</button>`,m=>{m.querySelector('[data-m=tek]').onclick=()=>{noktaKapat();subeAc(S.pt.sube,'veri');};});});}
 
 function renderPuantajDetay(){if(cokluAcik())return renderCoklu();if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
-  const subeSec=S.subeIds.length>1?`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsel"><select id="ptSube" aria-label="Şube seç">${S.subeIds.map(i=>`<option value="${esc(i)}" ${i===S.pt.sube?'selected':''}>${esc((S.subeler[i]||{}).ad||i)}</option>`).join('')}</select></div></div>`:`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsube1">${esc(sb.ad)}</div></div>`;
+  const subeSec=S.subeIds.length>1?ptSubeKutu():`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsube1">${esc(sb.ad)}</div></div>`;
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${D.ad}</span></div><div class="ptnav">${subeSec}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
   const ayDeg=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;veriBosTemizle();S.ay=y;S.ayElle=true;S.pt.vsel=null;puantajAc(S.pt.sube);};
   const navBagla=()=>{byId('geriL').onclick=listeyeDon;fmSeciciBagla(ak);const ps=byId('ptSube');if(ps)ps.onchange=e=>{const y=e.target.value;if(!y||y===S.pt.sube)return;veriBosTemizle();S.pt.vsel=null;puantajAc(y);window.scrollTo(0,0);};byId('ptPrev').onclick=()=>ayDeg(-1);byId('ptNext').onclick=()=>ayDeg(1);};

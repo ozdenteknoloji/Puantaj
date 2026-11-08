@@ -676,3 +676,5 @@ table.pt tr.grp td{background:var(--soft);font-weight:800;color:var(--navy);font
 
 /* Kopyalarken etiketler (Part, paket başı, +1 bayram…) gelmesin; sadece isim ve rakamlar */
 table.pt td .tag{-webkit-user-select:none;user-select:none}
+
+.ptsel-btn{display:block;width:100%;font:inherit;font-size:19px;font-weight:800;color:var(--ink);background:transparent;border:0;padding:11px 36px;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
