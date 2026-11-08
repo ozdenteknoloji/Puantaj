@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=249;
+const APP_SURUM=250;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2299,13 +2299,15 @@ async function odemeDosya(V,L,sade,tur){const cv=await odemeGorseli(V,L,sade);co
   const J=await jspdfLib();const w=cv.width/2*0.75,h=cv.height/2*0.75;const pdf=new J({orientation:w>h?'l':'p',unit:'pt',format:[w,h]});pdf.addImage(cv.toDataURL('image/png'),'PNG',0,0,w,h);
   pdf.setProperties({title:ad});return new File([pdf.output('blob')],ad+'.pdf',{type:'application/pdf'});}
 function odemeCiktisi(V){let tur=tryLS('pm.odTur')||'png';let sade=tryLS('pm.odSade')==='1';const baslik=odBaslik(V);
-  const tum=V.satir.slice().sort((a,b)=>String(a.sol.ad).localeCompare(String(b.sol.ad),'tr'));const sec=new Set(tum.map(x=>x.pid));
+  const tum=V.satir.slice().sort((a,b)=>String(a.sol.ad).localeCompare(String(b.sol.ad),'tr'));
+  // Kalan ödemesi 0 olanlar listede ama başta seçili değil (ödeme listesinde gereksiz); istenirse işaretlenir.
+  const sifir=x=>Math.abs(x.hes.kalan||0)<0.5;const sec=new Set(tum.filter(x=>!sifir(x)).map(x=>x.pid));
   openSheet(`<h2>Ödeme listesi paylaş</h2><div class="sub">${esc(baslik)}</div>
    <div class="seg" id="odSade" style="margin-bottom:8px"><button data-v="0" class="${!sade?'on':''}">Ayrıntılı</button><button data-v="1" class="${sade?'on':''}">Sade (ad + ödenecek)</button></div>
    <div class="seg" id="odTur" style="margin-bottom:10px"><button data-v="png" class="${tur==='png'?'on':''}">Fotoğraf</button><button data-v="pdf" class="${tur==='pdf'?'on':''}">PDF</button></div>
    <div class="kpis" id="odTop"></div>
    <div class="actions" style="margin:8px 0 4px"><button class="mini" id="odHepsi">Tümünü seç</button><button class="mini" id="odHicbiri">Tümünü kaldır</button></div>
-   <div class="card list" id="odKisi" style="max-height:34vh;overflow:auto">${tum.map(x=>`<label class="kfrow" style="padding:6px 10px"><input type="checkbox" data-od="${esc(x.pid)}" checked> <span style="flex:1"><b>${esc(x.sol.ad)}</b></span><em style="font-style:normal">${tl(x.hes.kalan)}</em></label>`).join('')}</div>
+   <div class="card list" id="odKisi" style="max-height:34vh;overflow:auto">${tum.map(x=>`<label class="kfrow" style="padding:6px 10px"><input type="checkbox" data-od="${esc(x.pid)}" ${sec.has(x.pid)?'checked':''}> <span style="flex:1"><b>${esc(x.sol.ad)}</b>${sifir(x)?' <span class="tag">ödemesi yok</span>':''}</span><em style="font-style:normal">${tl(x.hes.kalan)}</em></label>`).join('')}</div>
    <img class="share-prev" id="odImg" alt="Ödeme listesi önizleme" style="margin-top:10px">
    <div class="row2"><button class="btn grow" id="odIndir">İndir</button><button class="btn primary grow" id="odPay">WhatsApp / Paylaş</button></div>
    <p class="note">Görmemesi gereken kişilerin işaretini kaldırın; üstteki toplamlar ve görsel sadece seçilenlerden hazırlanır.</p>`,()=>{
