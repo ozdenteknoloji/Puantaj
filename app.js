@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=257;
+const APP_SURUM=258;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2364,7 +2364,8 @@ function odBaslik(V){if(V.baslik)return V.baslik;return `${trBuyukBas(V.sb.ad)} 
 function odToplam(L){return L.reduce((t,x)=>{const h=x.hes;t.hak+=(h.pb?0:h.hak)+h.fmTl+h.paketPrimi+h.ciroPrimi+(h.ekOd||0);t.bankaya+=h.bankaya;t.avans+=h.avans+h.araOdeme;t.nakit+=Math.max(h.kalan,0);t.kalan+=h.kalan;return t;},{hak:0,bankaya:0,avans:0,nakit:0,kalan:0});}
 async function odemeGorseli(V,L,sade){try{await document.fonts.ready;}catch(e){}const T=MUH_TEMA.klasik;
   const tmp=document.createElement('canvas').getContext('2d');const F=(w,s)=>`${w} ${s}px Figtree,system-ui,sans-serif`;const olc=(t,f)=>{tmp.font=f;return tmp.measureText(String(t)).width;};
-  const gunY=x=>x.hes.saat?fmt(x.hes.saatSayi)+' sa':x.hes.esnaf||x.hes.maasYok?'—':String(x.sol.hakGun!=null?x.sol.hakGun:x.sol.gun);const t2=v=>Math.abs(v||0)>0.004?tl(v):'';
+  // Bayramda çalışılan gün hak edişe +1 gün ücret ekler: ödeme listesinde gün "30+1" yazılır (neden fazla olduğu belli olsun).
+  const gunY=x=>x.hes.saat?fmt(x.hes.saatSayi)+' sa':x.hes.esnaf||x.hes.maasYok?'—':String(x.sol.hakGun!=null?x.sol.hakGun:x.sol.gun)+(!x.hes.pb&&x.sol.bayram>0?`+${fmt(x.sol.bayram)}`:'');const t2=v=>Math.abs(v||0)>0.004?tl(v):'';
   const bas=sade?['#','ADI SOYADI','GÜN','ÖDENECEK']:['#','ADI SOYADI','GÜN','HAK EDİLEN','BANKAYA YATAN','FAZLA MESAİ','PRİM','AVANS + ARA ÖD.','ÖDENECEK'];
   const veri=L.map((x,i)=>{const h=x.hes;const ad=String(x.sol.ad).toLocaleUpperCase('tr-TR');return sade?[i+1,ad,gunY(x),tl(h.kalan)]:[i+1,ad,gunY(x),h.pb?'':t2(h.hak+(h.ekOd||0)),t2(h.bankaya),t2(h.fmTl),t2(h.paketPrimi+h.ciroPrimi),t2(h.avans+h.araOdeme),tl(h.kalan)];});
   const son=bas.length-1;const fH=F(800,10.5),fA=F(700,12),fD=F(600,11.5),fK=F(800,12.5);
@@ -2391,7 +2392,7 @@ async function odemeGorseli(V,L,sade){try{await document.fonts.ready;}catch(e){}
   x.fillStyle=T.th;x.fillRect(ox,y,tw,thH);x.fillStyle=T.thYazi;x.font=fK;const tr=sade?['','TOPLAM','',tl(Tp.kalan)]:['','TOPLAM','',tl(L.reduce((a,q)=>a+(q.hes.pb?0:q.hes.hak)+(q.hes.ekOd||0),0)),tl(Tp.bankaya),t2(L.reduce((a,q)=>a+q.hes.fmTl,0)),t2(L.reduce((a,q)=>a+q.hes.paketPrimi+q.hes.ciroPrimi,0)),tl(Tp.avans),tl(Tp.kalan)];
   cx=ox;tr.forEach((v,j)=>{x.textAlign=hiz(j);x.fillText(v,tx(j,cx),y+thH/2+.5);cx+=cw[j];});
   cx=ox;x.fillStyle=T.cizgi;cw.slice(0,-1).forEach(w=>{cx+=w;x.fillRect(cx,top+thH,1,L.length*rowH);});x.strokeStyle=T.cizgi;x.strokeRect(ox+.5,top+.5,tw-1,thH*2+L.length*rowH-1);
-  y+=thH+22;x.textAlign='left';x.fillStyle=T.not;x.font=F(500,10.5);if(Tp.kalan<Tp.nakit-0.004)x.fillText('Ödenecek toplam: kalanı artı olanların toplamı (eksi kalanlar ödenmez, sonraki aya devreder).',ox,y);
+  y+=thH+22;x.textAlign='left';x.fillStyle=T.not;x.font=F(500,10.5);if(Tp.kalan<Tp.nakit-0.004)x.fillText('Ödenecek toplam: kalanı artı olanların toplamı (eksi kalanlar ödenmez, sonraki aya devreder).',ox,y);if(L.some(q=>!q.hes.pb&&q.sol.bayram>0)){y+=15;x.fillText('Gün "30+1": bayramda çalışılan gün, hak edişe bir günlük ücret eklendi.',ox,y);}
   return cv;}
 async function odemeDosya(V,L,sade,tur){const cv=await odemeGorseli(V,L,sade);const ad=odBaslik(V);
   if(tur==='png'){const b=await new Promise(r=>cv.toBlob(r,'image/png'));return new File([b],ad+'.png',{type:'image/png'});}
