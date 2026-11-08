@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=247;
+const APP_SURUM=248;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2433,7 +2433,9 @@ function bordroCoz(lines){const para=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;const out={i
   lines.forEach((l,i)=>{let m;
     // Kişi satırının altındaki ayrıntı satırları: "Bayram: 936,50 N", "Ücretli İzin (6G): 5.615,10 N". Bayram günü = tutar ÷ günlük ücret (ücret ÷ 30).
     if(son&&!/^\s*\d+\s+\S/.test(l)){if((m=l.match(/Bayram\s*(?:\((\d+)\s*G\))?\s*:\s*(\d{1,3}(?:\.\d{3})*,\d{2})/i))){const gun=m[1]?+m[1]:(son.ucret>0?Math.max(1,Math.round(sayi(m[2])/(son.ucret/30))):1);son.bayram=(son.bayram||0)+gun;}
-      if((m=l.match(/(?:Ücretli|Yıllık)\s*İzin\s*\((\d+)\s*G\)/i)))son.yillik=(son.yillik||0)+(+m[1]);}if(!out.isyeri&&(m=l.match(/İşyeri\s+Adı\s+(.+)/)))out.isyeri=m[1].replace(/\s+/g,' ').trim();if(!out.donem&&(m=l.match(/Ay\s*\/\s*Yıl\s+([A-ZÇĞİÖŞÜ]+)\s*\/\s*(\d{4})/)))out.donem=m[1]+' '+m[2];
+      if((m=l.match(/(?:Ücretli|Yıllık)\s*İzin\s*\((\d+)\s*G\)/i)))son.yillik=(son.yillik||0)+(+m[1]);
+      // Rapor bazen eksik gün sütununda değil sadece ayrıntıda yazar ("Rapor (2G): 0,00"); eksik günden de geldiyse çift sayılmaz (aşağıda büyüğü alınır).
+      if((m=l.match(/(?:Rapor|İstirahat)\s*\((\d+)\s*G\)/i)))son.raporD=(son.raporD||0)+(+m[1]);}if(!out.isyeri&&(m=l.match(/İşyeri\s+Adı\s+(.+)/)))out.isyeri=m[1].replace(/\s+/g,' ').trim();if(!out.donem&&(m=l.match(/Ay\s*\/\s*Yıl\s+([A-ZÇĞİÖŞÜ]+)\s*\/\s*(\d{4})/)))out.donem=m[1]+' '+m[2];
     if((m=l.match(/^\s*(\d+)\s+(.+?)\s+(\d{11})\s+(\d{2}\.\d{2}\.\d{4})(.*)$/))){const rest=m[5];const nums=rest.match(para)||[];const g=rest.match(/(\d[\d.]*,\d{2})\s*([GS])\s+(\d+)/);
       const ck=rest.match(/^\s*(\d{2})\.(\d{2})\.(\d{4})/);
       // Eksik gün metni: çıkış tarihinden sonra, kanun kodundan (05510 + ücret G/S) önceki kısım; uzun metin alt satırlara kayar
@@ -2450,6 +2452,7 @@ function bordroCoz(lines){const para=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;const out={i
         if(/Ücretsiz/i.test(t))sb.ucretsiz+=n;else if(/Rapor|İstirahat|Hastal/i.test(t))sb.rapor+=n;else sb.eksikKarisik+=n;}
       son=sb;out.kisiler.push(son);}
     if((m=l.match(/Toplamlar:/))){son=null;const nums=l.match(para)||[];if(nums.length)out.toplam=sayi(nums[nums.length-1]);}});
+  out.kisiler.forEach(k=>{if(k.raporD>(k.rapor||0)){const ek=k.raporD-(k.rapor||0);k.rapor=k.raporD;if(k.eksikKarisik)k.eksikKarisik=Math.max(0,k.eksikKarisik-ek);}delete k.raporD;});
   {const m=String(out.donem||'').match(/^(\S+)\s+(\d{4})$/);if(m){const ai=AY.findIndex(a=>ayKatla(a)===ayKatla(m[1]));if(ai>=0){const dk=m[2]+'-'+String(ai+1).padStart(2,'0');out.kisiler.forEach(k=>{k.donemKey=dk;});}}}
   if(out.kisiler.length&&!out.kisiler[0].donemKey)out.kisiler.forEach(k=>{k.uyari=[...(k.uyari||[]),'Bordronun ayı okunamadı, doğru ay olduğunu kontrol edin'];});
   return out;}
