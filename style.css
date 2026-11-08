@@ -678,3 +678,13 @@ table.pt tr.grp td{background:var(--soft);font-weight:800;color:var(--navy);font
 table.pt td .tag{-webkit-user-select:none;user-select:none}
 
 .ptsel-btn{display:block;width:100%;font:inherit;font-size:19px;font-weight:800;color:var(--ink);background:transparent;border:0;padding:11px 36px;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Telefonda puantaj tablolarında isim sütunu dondurulur (sağa kaydırırken isim görünür kalır); başlık satırı zaten donuk */
+@media (max-width:700px),(pointer:coarse){
+  .tbl-wrap.dondur table.pt.dn1 tbody tr:not(.grp) td:nth-child(1),.tbl-wrap.dondur table.pt.dn1 thead th:nth-child(1),.tbl-wrap.dondur table.pt.dn2 tbody tr:not(.grp) td:nth-child(2),.tbl-wrap.dondur table.pt.dn2 thead th:nth-child(2),.tbl-wrap.dondur table.pt.dn3 tbody tr:not(.grp) td:nth-child(3),.tbl-wrap.dondur table.pt.dn3 thead th:nth-child(3){position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:1px 0 0 var(--line);max-width:150px;min-width:110px;white-space:normal;line-height:1.25}
+  .tbl-wrap.dondur table.pt.dn1 thead th:nth-child(1),.tbl-wrap.dondur table.pt.dn2 thead th:nth-child(2),.tbl-wrap.dondur table.pt.dn3 thead th:nth-child(3){z-index:5;background:var(--soft)}
+  .tbl-wrap.dondur table.pt tr.cikis td:nth-child(n){background:var(--yel)!important}
+  .tbl-wrap.dondur table.pt tr.eksi td:nth-child(n){background:var(--red)!important}
+  .tbl-wrap.dondur table.pt tr.tot td:nth-child(n){background:var(--soft)!important}
+  .tbl-wrap.dondur table.pt tr.grp td:nth-child(n){background:var(--soft)!important}
+}
