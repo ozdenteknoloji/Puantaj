@@ -121,7 +121,11 @@ table.pt tr.tot td{font-weight:800;background:var(--soft)}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:92%;overflow:auto;background:var(--surface);border-radius:20px 20px 0 0;padding-block:10px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
 @media (min-width:640px){.sheet{left:50%;right:auto;width:580px;transform:translateX(-50%)}}
 /* Geniş tablo içeren pencereler (toplu bordro): PC'de ekranın çoğunu kullanır, telefonda aynı */
-@media (min-width:640px){.sheet.wide{width:min(1180px,94vw)}}
+@media (min-width:640px){.sheet.wide{width:min(1500px,98vw);max-height:96%}
+  .sheet.wide .tbl-wrap{max-height:calc(96vh - 330px)!important}
+  .sheet.wide table.pt td.l{white-space:normal}
+  .sheet.wide table.pt select{max-width:100%!important;width:100%}
+  .sheet.wide table.pt td,.sheet.wide table.pt th{padding:6px 6px}}
 .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
 .sheet h2{margin:0;font-size:18px}.sheet .sub{color:var(--mut);font-size:13px;margin:3px 0 12px;line-height:1.4}
 .lbl{display:block;font-size:11.5px;font-weight:800;color:var(--mut);letter-spacing:.6px;text-transform:uppercase;margin:14px 0 7px}
@@ -286,6 +290,8 @@ table.vg2 td.dur{white-space:nowrap}
 .dh.fmh span{font-size:9.5px;line-height:1.1}
 .drop{display:flex;flex-direction:column;align-items:center;gap:4px;padding:22px 12px;border:2px dashed var(--line);border-radius:14px;background:var(--bg);cursor:pointer;text-align:center;margin-top:6px}
 .drop b{font-size:14px}.drop span{font-size:12px;color:var(--mut)}.drop.on{border-color:var(--accent-ink);background:var(--navy-soft)}
+/* PDF okunduktan sonra bırakma alanı küçülür, tabloya yer kalır */
+.drop.kucuk{flex-direction:row;justify-content:center;gap:10px;padding:8px 12px}
 table.vg2 td.vsel{background:var(--navy-soft)!important;box-shadow:inset 0 0 0 1px var(--accent-ink)}
 /* Ay sonu kontrol listesi */
 .kcard{padding:4px 0}

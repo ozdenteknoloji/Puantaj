@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=232;
+const APP_SURUM=233;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1177,7 +1177,9 @@ function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH
       c.textAlign='right';if(ib){c.fillStyle='#0b1220';c.font=`700 38px ${M}`;c.fillText(ib,W-P,y+RH/2);}else{c.fillStyle='#b42318';c.font=`800 34px ${F}`;c.fillText('IBAN girilmemiş',W-P,y+RH/2);}
       c.textAlign='left';y+=RH;});});
   c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
-async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);const ad=`IBAN-${ak}.png`;const baslik=`${AY[+ak.slice(5)-1]} Ayı IBAN Listesi`;
+async function ibanFoto(ak){try{await document.fonts.ready;}catch(_){}const cv=ibanGorseli(ak);await gorselPaylas(cv,`IBAN-${ak}.png`,`${AY[+ak.slice(5)-1]} Ayı IBAN Listesi`);}
+// Fotoğrafı paylaşır: bilgisayarda panoya kopyalar (WhatsApp Web'e Ctrl+V), telefonda paylaş menüsü, olmazsa indirir.
+async function gorselPaylas(cv,ad,baslik){
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));if(!bl){toast('Fotoğraf hazırlanamadı.');return;}const f=new File([bl],ad,{type:'image/png'});
   // Bilgisayarda (fare ile): fotoğraf panoya kopyalanır, WhatsApp Web'e Ctrl+V ile yapıştırılır. Telefonda paylaş menüsü açılır.
   const pc=window.matchMedia&&matchMedia('(pointer:fine)').matches;
@@ -2449,6 +2451,7 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
      ciz();};
    const ciz=()=>{// aynı kişi iki kez eşleşirse (aynı PDF iki kez bırakıldıysa vb.) ilki geçerli
      const gor={};satirlar.forEach(k=>{k.tekrar=false;if(!k.pid)return;if(gor[k.pid])k.tekrar=true;else gor[k.pid]=1;});
+     byId('bDrop').classList.toggle('kucuk',okunan.length>0);
      byId('bDosya').innerHTML=okunan.map(o=>`<div class="tags" style="margin:6px 0 0"><span class="tag">${esc(o.ad)}</span>${o.hata?`<span class="tag warn">${esc(o.hata)}</span>`:`<span class="tag">${esc(o.isyeri||'')}</span><span class="tag">${esc(o.donem||'')}</span><span class="tag ${o.toplamOk?'':'warn'}">${o.n} kişi · ${tl(o.top)} ₺ ${o.toplamOk?'✓':'⚠ PDF toplamı '+tl(o.toplam)}</span>`}</div>`).join('');
      const baskaAy=k=>!!(k.donemKey&&k.donemKey!==V.ak);const es=satirlar.filter(k=>k.pid&&!k.tekrar&&!baskaAy(k)),yok=satirlar.filter(k=>!k.pid||baskaAy(k));
      const satir=(k)=>{const j=satirlar.indexOf(k);const sol=k.pid&&V.sol[k.pid];const F=sol?bordroFark(k,sol):[];const p=k.pid&&S.personel.find(q=>q.id===k.pid);const h=p&&bordroHedef(k.pid,V.ak,V);
@@ -2459,8 +2462,12 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
          <td class="bi"><input data-n="${j}" value="${esc(k.netYazi==null?'':fmt(k.netYazi))}" inputmode="decimal" style="width:110px;text-align:right;font-weight:700" title="Okunan tutar yanlışsa düzeltin">${yuksekTag(k.netYazi)}</td></tr>`;};
      byId('bOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · ${yok.length} kişi bu şubede yok (atlanır)`:''}. Tutar yanlış okunduysa kutudan düzeltin.</p>
        <div class="tbl-wrap" style="max-height:48vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th>Bordro gün</th><th>Puantaj gün</th><th>Net ödenen</th></tr></thead><tbody>${[...es,...satirlar.filter(k=>k.pid&&k.tekrar),...yok].map(satir).join('')}</tbody></table></div>
-       <div class="row2"><button class="btn grow" id="bEk">+ PDF ekle</button><button class="btn primary grow" id="bOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
+       <div class="row2"><button class="btn grow" id="bEk">+ PDF ekle</button><button class="btn grow" id="bPay">Paylaş</button><button class="btn primary grow" id="bOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
      const be=byId('bEk');if(be)be.onclick=()=>byId('bF').click();
+     const bp=byId('bPay');if(bp)bp.onclick=async()=>{try{await document.fonts.ready;}catch(_){}
+       const R=es.slice().sort((a,b)=>String(V.sol[a.pid].ad).localeCompare(String(V.sol[b.pid].ad),'tr')).map(k=>{const r=V.sol[k.pid];return{ad:adBuyuk(r.ad),alt:r.sgkSube||'',b:gunYazi(k.sgkGun,k.detay?k:null),p:gunYazi(r.gun,r),net:k.netYazi,fark:bordroFark(k,r).map(farkMetin)};});
+       const E=yok.map(k=>({ad:String(k.ad||'').toLocaleUpperCase('tr-TR'),alt:k.isyeri||'',net:k.netYazi}));
+       await gorselPaylas(bordroKontrolGorseli(`${V.sb.ad} · ${AY[+V.ak.slice(5)-1]} Ayı Bordro Kontrolü`,`${ayAdi(V.ak)} · ${es.length} kişi`,R,E),`Bordro-kontrol-${V.sb.ad}-${V.ak}.png`,`${V.sb.ad} ${AY[+V.ak.slice(5)-1]} Ayı Bordro Kontrolü`);};
      byId('bOut').querySelectorAll('select[data-j]').forEach(s=>s.onchange=()=>{const k=satirlar[+s.dataset.j];k.pid=s.value||null;k.yol=s.value?'elle':null;ciz();});
      byId('bOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);ciz();});
      const ok=byId('bOk');if(ok)ok.onclick=()=>{const tutarli=es.filter(k=>k.netYazi!=null);if(tutarli.length<es.length)toast(`${es.length-tutarli.length} kişinin net tutarı boş, atlandı.`);isle(tutarli);};};
@@ -2485,6 +2492,29 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
 
 // Bordrodan okunan net bu tutarı geçerse "yüksek" uyarısı (asgari net 28.075 + 5 bayram günü ≈ 32.800). Asgari ücret değişince güncellenir.
 const BORDRO_UST_SINIR=33000;
+// Bordro kontrolü fotoğrafı (tüm liste): tutmayanlar üstte kırmızı, tutanlar, en altta bordroda olup personelde eşleşmeyenler.
+// R: [{ad, alt, b:bordro metni, p:puantaj metni, net, fark:[metin]}], E: [{ad, alt, net}]
+const gunYazi=(g,o)=>[`${g??''}${o&&o.bayram>0?` +${fmt(o.bayram)} bayram`:''}`,o&&o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o&&o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o&&o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean).join(' · ');
+function bordroKontrolGorseli(baslik,altBaslik,R,E){const W=1400,P=40,sc=2;const F='Figtree, Arial, sans-serif';
+  const T=R.filter(r=>r.fark.length),U=R.filter(r=>!r.fark.length);const bol=[];
+  if(T.length)bol.push({ad:`Tutmayanlar · ${T.length}`,tip:'t',r:T});bol.push({ad:`Tutanlar · ${U.length}`,tip:'u',r:U});if(E.length)bol.push({ad:`Personelde eşleşmeyen · ${E.length}`,tip:'e',r:E});
+  const rh=r=>r.fark&&r.fark.length?96+r.fark.length*32:84;const SH=56,HH=48;
+  const H=P+130+HH+bol.reduce((t,b)=>t+SH+(b.r.length?b.r.reduce((x,r)=>x+(b.tip==='e'?70:rh(r)),0):70),0)+P+30;
+  const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;const c=cv.getContext('2d');c.scale(sc,sc);c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='middle';
+  c.fillStyle='#1f3a6b';c.font=`800 40px ${F}`;c.fillText(baslik,P,P+28);c.fillStyle='#6b7280';c.font=`600 25px ${F}`;c.fillText(altBaslik,P,P+78);
+  c.textAlign='right';c.font=`800 28px ${F}`;if(T.length){c.fillStyle='#b42318';c.fillText(`${T.length} kişide fark var`,W-P,P+28);}else{c.fillStyle='#067647';c.fillText('Hepsi tutuyor ✓',W-P,P+28);}c.textAlign='left';
+  const X={ad:P,b:640,p:900,n:W-P};let y=P+130;
+  c.fillStyle='#1f3a6b';c.fillRect(0,y,W,HH);c.fillStyle='#fff';c.font=`800 21px ${F}`;c.fillText('AD SOYAD',X.ad,y+HH/2);c.fillText('BORDRO',X.b,y+HH/2);c.fillText('PUANTAJ',X.p,y+HH/2);c.textAlign='right';c.fillText('NET ÖDENEN',X.n,y+HH/2);c.textAlign='left';y+=HH;
+  bol.forEach(b=>{c.fillStyle=b.tip==='t'?'#fdecea':b.tip==='e'?'#f4f4f5':'#eef1f6';c.fillRect(0,y,W,SH);c.font=`800 22px ${F}`;c.fillStyle=b.tip==='t'?'#b42318':b.tip==='e'?'#6b7280':'#4b5563';c.fillText(b.ad.toLocaleUpperCase('tr-TR'),P,y+SH/2);y+=SH;
+    if(!b.r.length){c.fillStyle='#6b7280';c.font=`600 24px ${F}`;c.fillText('Kimse yok.',P,y+35);y+=70;return;}
+    b.r.forEach(r=>{const h=b.tip==='e'?70:rh(r);if(b.tip==='t'){c.fillStyle='#fff7f6';c.fillRect(0,y,W,h);}c.fillStyle='#e5e7eb';c.fillRect(0,y+h-1,W,1);
+      if(b.tip==='e'){c.fillStyle='#6b7280';c.font=`700 27px ${F}`;c.fillText(r.ad,X.ad,y+26);c.font=`600 20px ${F}`;c.fillText(r.alt||'',X.ad,y+54);c.textAlign='right';c.font=`700 27px ${F}`;c.fillText(r.net==null?'':tl(r.net),X.n,y+h/2);c.textAlign='left';y+=h;return;}
+      c.fillStyle='#111827';c.font=`800 28px ${F}`;c.fillText(r.ad,X.ad,y+30,X.b-X.ad-20);c.fillStyle='#6b7280';c.font=`600 20px ${F}`;c.fillText(r.alt||'',X.ad,y+62,X.b-X.ad-20);
+      c.fillStyle='#111827';c.font=`700 25px ${F}`;c.fillText(r.b||'',X.b,y+30,X.p-X.b-16);c.fillText(r.p||'—',X.p,y+30,X.n-180-X.p);
+      c.textAlign='right';c.font=`800 28px ${F}`;c.fillText(r.net==null?'':tl(r.net),X.n,y+30);c.textAlign='left';
+      r.fark.forEach((f,i)=>{c.fillStyle='#b42318';c.font=`800 23px ${F}`;c.fillText('• '+f,X.b,y+96+i*32-14);});y+=h;});});
+  c.fillStyle='#9ca3af';c.font=`500 20px ${F}`;c.fillText(`Puantaj Merkezi · ${trTarih(ymd(today()))}`,P,H-P/2-6);return cv;}
+const farkMetin=f=>`${f.ad}: bordro ${f.b}, puantaj ${f.p}`;
 // Bordro ↔ puantaj gün karşılaştırması. Liste bordrosunda (detay) gün, bayram, yıllık izin, ücretsiz izin ve rapor; tek kişilik pusulada sadece gün.
 // Bordrodaki gün bayramı içermez (bayram ayrı satırda tutar olarak yazar), puantajdaki "gün" de öyle: ikisi ayrı ayrı karşılaştırılır.
 const GUN_KARS=[['gun','sgkGun','gün'],['bayram','bayram','bayram'],['yillik','yillik','yıllık izin'],['ucretsiz','ucretsiz','ücretsiz izin'],['rapor','rapor','rapor']];
@@ -2533,6 +2563,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
      await sollar();ciz();};
    const sollar=()=>Promise.all([...new Set(satirlar.filter(k=>k.pid).map(k=>(byP(k.pid)||{}).sgkSube))].map(solGetir));
    const ciz=()=>{const gor={};satirlar.forEach(k=>{k.tekrar=false;if(!k.pid)return;if(gor[k.pid])k.tekrar=true;else gor[k.pid]=1;});
+     byId('tbDrop').classList.toggle('kucuk',okunan.length>0);
      byId('tbDosya').innerHTML=okunan.map(o=>`<div class="tags" style="margin:6px 0 0"><span class="tag">${esc(o.ad)}</span>${o.hata?`<span class="tag warn">${esc(o.hata)}</span>`:`<span class="tag">${esc(o.isyeri||'')}</span><span class="tag">${esc(o.donem||'')}</span><span class="tag ${o.toplamOk?'':'warn'}">${o.n} kişi · ${tl(o.top)} ₺ ${o.toplamOk?'✓':'⚠ PDF toplamı '+tl(o.toplam)}</span>`}</div>`).join('');
      const baskaAy=k=>!!(k.donemKey&&k.donemKey!==ak);const es=satirlar.filter(k=>k.pid&&!k.tekrar&&!baskaAy(k)),yok=satirlar.filter(k=>!k.pid||baskaAy(k));
      const farkli=es.filter(gunFark),ozetsiz=[...new Set(es.filter(k=>solSatir(k.pid)===null).map(k=>subeAdi(byP(k.pid).sgkSube)))];
@@ -2552,8 +2583,14 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
      byId('tbOut').innerHTML=satirlar.length?`<p class="note" style="margin:8px 0 4px"><b>${es.length} kişi eşleşti</b>${yok.length?` · <b style="color:var(--warn)">${yok.length} satır eşleşmedi</b> (kişiyi elle seçin ya da atlansın)`:''}${farkli.length?` · <b style="color:var(--warn)">${farkli.length} kişide gün farkı</b>`:es.some(k=>solSatir(k.pid))?' · günler puantajla uyuyor':''}. ${Object.entries(hs).map(([h,n])=>`${esc(subeAdi(h))} ${n}`).join(' · ')}</p>
        <p class="note" style="margin:0 0 6px">Bordrodaki gün, bayram, yıllık izin, ücretsiz izin, rapor ve çıkış tarihi, puantajda muhasebeye gidenle karşılaştırılır.${eksikS.length?` <b style="color:var(--warn)">${eksikS.map(esc).join(', ')}:</b> ay içinde kapatılmamış ya da işlenmemiş hafta var, puantaj günleri eksik çıkabilir (şubeyi bir kez açın).`:''}${ozetsiz.length?` Çizelge özeti olmayan şubeler karşılaştırılamadı: ${ozetsiz.map(esc).join(', ')}.`:''}</p>
        <div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table class="pt vt"><thead><tr><th class="l">Bordrodaki isim</th><th class="l">Personel</th><th class="l">Yazılacak şube</th><th>Bordro gün</th><th>Puantaj gün</th><th>Net ödenen</th></tr></thead><tbody>${[...yok,...satirlar.filter(k=>k.pid&&k.tekrar),...farkli,...es.filter(k=>!farkli.includes(k))].map(satir).join('')}</tbody></table></div>
-       <div class="row2"><button class="btn grow" id="tbEk">+ PDF ekle</button><button class="btn primary grow" id="tbOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
+       <div class="row2"><button class="btn grow" id="tbEk">+ PDF ekle</button><button class="btn grow" id="tbPay">Paylaş</button><button class="btn primary grow" id="tbOk" ${es.length?'':'disabled'}>${es.length} kişinin bankaya yatanını işle</button></div>`:'';
      const be=byId('tbEk');if(be)be.onclick=()=>byId('tbF').click();
+     const bp=byId('tbPay');if(bp)bp.onclick=async()=>{try{await document.fonts.ready;}catch(_){}
+       const sub=k=>subeAdi((byP(k.pid)||{}).sgkSube);const sir=(a,b)=>String(sub(a)).localeCompare(String(sub(b)),'tr')||String(a.ad).localeCompare(String(b.ad),'tr');
+       const R=es.slice().sort(sir).map(k=>{const r=solSatir(k.pid);return{ad:adBuyuk(byP(k.pid).ad),alt:sub(k),b:gunYazi(k.sgkGun,k.detay?k:null),p:r?gunYazi(r.gun,r):'',net:k.netYazi,fark:farkOf(k).map(farkMetin)};});
+       const E=yok.map(k=>({ad:String(k.ad||'').toLocaleUpperCase('tr-TR'),alt:k.isyeri||'',net:k.netYazi}));
+       const subs=[...new Set(es.map(sub))];const alt=`${ayAdi(ak)} · ${subs.length===1?subs[0]:subs.length+' şube'} · ${es.length} kişi`;
+       await gorselPaylas(bordroKontrolGorseli(`${AY[+ak.slice(5)-1]} Ayı Bordro Kontrolü`,alt,R,E),`Bordro-kontrol-${ak}.png`,`${AY[+ak.slice(5)-1]} Ayı Bordro Kontrolü`);};
      byId('tbOut').querySelectorAll('select[data-j]').forEach(x=>x.onchange=async()=>{const k=satirlar[+x.dataset.j];k.pid=x.value||null;k.yol=x.value?'elle':null;k.hedef=k.pid?hedefVars(k.pid):'';await sollar();ciz();});
      byId('tbOut').querySelectorAll('select[data-h]').forEach(x=>x.onchange=()=>{satirlar[+x.dataset.h].hedef=x.value;ciz();});
      byId('tbOut').querySelectorAll('input[data-n]').forEach(i=>i.onchange=()=>{const bos=i.value.trim()==='';satirlar[+i.dataset.n].netYazi=bos?null:sayi(i.value);ciz();});
