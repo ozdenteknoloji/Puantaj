@@ -73,6 +73,8 @@ function gorevTahmin(p){const g=String(p.gorev||'').toLocaleUpperCase('tr-TR');i
   if(p.sekil==='Esnaf kurye')return'Esnaf Kurye';
   if(g.startsWith('R.')||g.includes('RESTORAN'))return'R. Müdür';if(g.startsWith('V.')||g.includes('VARD')||g.includes('MÜDÜR'))return'V. Müdür';
   if(g.includes('SÜRÜCÜ')||g.includes('KURYE')||g.includes('MOTOR')||p.grup==='S')return'Kurye';if(g.includes('MUTFAK')||p.grup==='K')return'Mutfak';return'';}
+// Şube adları her yerde aynı düzende: büyük harf, tek boşluk (kayıtlı ad farklı yazılmış olsa da).
+const subeAdBuyuk=t=>String(t||'').replace(/\s+/g,' ').trim().toLocaleUpperCase('tr-TR');
 function subeAdi(id){if(id===SGK_YOK)return'';return(S.subeler[id]&&S.subeler[id].ad)||(S.subeAdlari[id])||id||'';}
 const ROL={sube:'Şube müdürü',bolge:'Bölge müdürü',isveren:'İşveren'};
 const DURUM={taslak:{ad:'Taslak',c:'mut'},sube_onay:{ad:'Şube onayladı',c:'warn'},geri:{ad:'Geri gönderildi',c:'bad'},bolge_onay:{ad:'Bölge onayladı',c:'ok'},kesin:{ad:'Kesin kapandı',c:'ok'}};
@@ -112,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=244;
+const APP_SURUM=245;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -663,11 +665,13 @@ function hesapYok(){top('Puantaj Merkezi','Hesap');byId('tabs').hidden=true;
 function subeleriDinle(){subs.subeDocs.forEach(u=>u());subs.subeDocs=[];
   const bitti=()=>{S.subeIds=Object.keys(S.subeler).sort((a,b)=>String(S.subeler[a].ad).localeCompare(String(S.subeler[b].ad),'tr'));if(isIsveren())subeAdSenkron();
     gocKontrol();if(!S.subeId||!S.subeler[S.subeId]){const want=tryLS('pm.sube');const pick=S.subeIds.includes(want)?want:S.subeIds[0];if(pick)selectSube(pick);else render();}else render();};
-  if(isIsveren()){subs.subeDocs.push(onSnapshot(collection(db,'subeler'),s=>{S.subeler={};s.docs.forEach(d=>S.subeler[d.id]=d.data());bitti();},e=>toast('Şubeler okunamadı.')));}
+  if(isIsveren()){subs.subeDocs.push(onSnapshot(collection(db,'subeler'),s=>{S.subeler={};const duz=[];s.docs.forEach(d=>{const x=d.data();const ad=subeAdBuyuk(x.ad);if(x.ad&&x.ad!==ad)duz.push([d.id,ad]);S.subeler[d.id]={...x,ad:x.ad?ad:x.ad};});
+      // Kayıtlı adı farklı düzende olan şubeler (ör. "Altınkale") bir kez büyük harfe çevrilip kaydedilir.
+      duz.forEach(([id,ad])=>setDoc(doc(db,'subeler',id),{ad},{merge:true}).catch(()=>{}));bitti();},e=>toast('Şubeler okunamadı.')));}
   else{const ids=(S.me.subeler||[]);if(!ids.length){S.subeler={};bitti();return;}let gelen=0;
-    ids.forEach(id=>subs.subeDocs.push(onSnapshot(doc(db,'subeler',id),s=>{if(s.exists())S.subeler[id]=s.data();else delete S.subeler[id];gelen++;if(gelen>=ids.length)bitti();},()=>{gelen++;if(gelen>=ids.length)bitti();})));}
+    ids.forEach(id=>subs.subeDocs.push(onSnapshot(doc(db,'subeler',id),s=>{if(s.exists()){const x=s.data();S.subeler[id]={...x,ad:x.ad?subeAdBuyuk(x.ad):x.ad};}else delete S.subeler[id];gelen++;if(gelen>=ids.length)bitti();},()=>{gelen++;if(gelen>=ids.length)bitti();})));}
   personelDinle();
-  subs.subeDocs.push(onSnapshot(doc(db,'sistem','subeAdlari'),s=>{S.subeAdlari=s.exists()?(s.data().adlar||{}):{};if(isIsveren())subeAdSenkron();},()=>{}));
+  subs.subeDocs.push(onSnapshot(doc(db,'sistem','subeAdlari'),s=>{S.subeAdlari=Object.fromEntries(Object.entries(s.exists()?(s.data().adlar||{}):{}).map(([k,v])=>[k,subeAdBuyuk(v)]));if(isIsveren())subeAdSenkron();},()=>{}));
   if(isSube())subs.subeDocs.push(onSnapshot(doc(db,'sistem','goc'),s=>{const v=!!(s.exists()&&s.data().v4);if(S.goc4!==v){S.goc4=v;render();}},()=>{}));
   // Bölge müdürü: sadece kendi yönettiği şube müdürleri ve onların şifre kayıtları (tek tek okunur).
   if(isBolge()&&!subs.users){const buid=S.user.uid;const dk={};S.sifreler={};S.sifreIstek={};
@@ -2726,7 +2730,7 @@ async function subeSil(id,btn,W){
   }catch(e){console.error(e);geri('Şube silinemedi, bir kısmı silinmiş olabilir. Tekrar Şubeyi sil\'e basarak kalanları silebilirsiniz. ('+esc(e.message||e.code||'')+')');}}
 function subePanel(id){const s=id?sube(id):{...VARSAYILAN,ad:''};
   openSheet(`<h2>${id?'Şube ayarları':'Yeni şube'}</h2><div class="sub">Vardiya renkleri ve fazla mesai bu ayarlara göre hesaplanır.${id?` Mesai ve ücret ayarlarındaki değişiklik ${ayAdi(ayKey(today())<BASLANGIC_AY?BASLANGIC_AY:ayKey(today()))} ayından itibaren geçerli olur; önceki aylar eski ayarla kalır.`:''}</div>
-   <label class="field"><span>Şube adı</span><input id="sAd" value="${esc(s.ad)}" placeholder="Altınkale"></label>
+   <label class="field"><span>Şube adı</span><input id="sAd" value="${esc(s.ad)}" placeholder="ALTINKALE" style="text-transform:uppercase" autocapitalize="characters"></label>
    <div class="fgrid"><label class="field"><span>Açılış</span><input id="sAc" inputmode="numeric" value="${esc(s.acilis)}"></label><label class="field"><span>Kapanış</span><input id="sKa" inputmode="numeric" value="${esc(s.kapanis)}"></label>${/legends/i.test(s.ad||'')||s.sonSaat?`<label class="field"><span>Saat listesi son saati</span><input id="sSon" inputmode="numeric" placeholder="örn. 02:30" value="${esc(s.sonSaat||'')}"></label>`:''}
    <label class="field"><span>Günlük mesai (sa)</span><input id="sGu" inputmode="decimal" value="${s.gunluk}"></label><div class="note" style="align-self:end;margin:0 0 14px">Haftalık mesai otomatik: günlük × 6</div></div>
    <span class="lbl">Fazla mesai ücreti</span><div class="seg" id="sYon"><button data-v="sabit" class="${s.fmYontem!=='maas'?'on':''}">Sabit saat ücreti</button><button data-v="maas" class="${s.fmYontem==='maas'?'on':''}">Maaşına göre</button></div>
@@ -2740,7 +2744,7 @@ function subePanel(id){const s=id?sube(id):{...VARSAYILAN,ad:''};
    
    const yb=sh.querySelectorAll('#sYon button');const tog=()=>byId('sUcW').hidden=sh.querySelector('#sYon .on').dataset.v==='maas';yb.forEach(b=>b.onclick=()=>{yb.forEach(x=>x.classList.remove('on'));b.classList.add('on');tog();});tog();
    const db_=sh.querySelectorAll('#sDon button');db_.forEach(b=>b.onclick=()=>{db_.forEach(x=>x.classList.remove('on'));b.classList.add('on');});
-   byId('sNo').onclick=closeSheet;byId('sOk').onclick=()=>{const ad=byId('sAd').value.trim(),ac=normTime(byId('sAc').value),ka=normTime(byId('sKa').value);
+   byId('sNo').onclick=closeSheet;byId('sOk').onclick=()=>{const ad=subeAdBuyuk(byId('sAd').value),ac=normTime(byId('sAc').value),ka=normTime(byId('sKa').value);
      if(!ad||!ac||!ka){byId('sErr').innerHTML='<div class="confirm">Şube adı, açılış ve kapanış saati gerekli (örn. 11:00 ve 00:30).</div>';return;}
      const gu=sayi(byId('sGu').value);if(!(gu>0&&gu<=16)){byId('sErr').innerHTML='<div class="confirm">Günlük mesai 1–16 saat arasında olmalı (örn. 8,5).</div>';return;}
      const sid=id||slug(ad);if(!id&&S.subeler[sid]){byId('sErr').innerHTML='<div class="confirm">Bu isimde bir şube var.</div>';return;}
