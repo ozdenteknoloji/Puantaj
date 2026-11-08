@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=253;
+const APP_SURUM=254;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1707,7 +1707,7 @@ async function cokluYukle(ak,L,key){S.pt.ck={key,durum:'yukleniyor',V:{}};
   try{const oq=await getDocs(query(collection(db,'ozetler'),where('ay','==',ak)));const O={m:{},vg:{}};oq.docs.forEach(d=>{const x=d.data();if(x.sube){O.m[x.sube]=x.kisiler||{};O.vg[x.sube]=x.veriGun||{};}});
     const pa=ayKaydir(ak,-1);const V={};
     await Promise.all(L.map(async sid=>{const[a,b,c]=await Promise.all([getDoc(doc(db,'puantaj',sid,'aylar',ak)),getDoc(doc(db,'maaslar',sid)),getDoc(doc(db,'puantaj',sid,'aylar',pa)).catch(()=>null)]);
-      const d0=a.exists()?a.data():{};const D={...d0,veri:veriListesi(d0)};V[sid]=cokluSubeVerisi(sid,ak,D,b.exists()?b.data():{},c&&c.exists()?c.data():{},O);}));
+      const d0=a.exists()?a.data():{};const D={...d0,veri:veriListesi(d0)};try{V[sid]=cokluSubeVerisi(sid,ak,D,b.exists()?b.data():{},c&&c.exists()?c.data():{},O);}catch(e){console.error(e);V[sid]={sid,ak,sol:{},satir:[],sb:subeAyari(sid,ak),D,durum:'hata',hata:String(e&&e.message||e)};}}));
     if(!S.pt.ck||S.pt.ck.key!==key)return;S.pt.ck={key,durum:'hazir',V};}
   catch(e){console.error(e);if(S.pt.ck&&S.pt.ck.key===key)S.pt.ck={key,durum:'hata',V:{},hata:String(e&&e.code||e)};}
   if(S.tab==='puantaj'&&cokluAcik())render();}
@@ -1721,7 +1721,9 @@ function cokluSubeVerisi(sid,ak,D,maas,prev,O){const sav=S.pt.maas;S.pt.maas=maa
     const satir=ids.map(pid=>{const dv=prevSag[pid]&&prevSag[pid].kalan<0?prevSag[pid].kalan:0;return{pid,sid,sol:sol[pid],sag:sag[pid]||{},net:net[pid],hes:sagHesap(pid,sol[pid],sag[pid],net[pid],sb,dv,oz[pid],usOf(pid),otoKapi(ak,kilitli,false))};});
     return{sid,ak,kilitli,sol,satir,sb,D,oz,durum:kilitli?'onayli':tahmini?'tahmini':'onayli'};}
   finally{S.pt.maas=sav;}}
-function renderCoklu(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.join(',');const g=S.pt.gorunum||'sag';
+// Çizerken bir hata olursa ekran "yükleniyor"da donup kalmasın: hata yazılır, tek şubeye dönülebilir.
+function renderCoklu(){try{return renderCokluIc();}catch(e){console.error(e);view(`<div class="banner bad"><b>Çoklu şube ekranı açılamadı.</b> ${esc(String(e&&e.message||e))}<div style="margin-top:8px"><button class="btn" id="ckTek">Tek şubeye dön</button></div></div>`,()=>{byId('ckTek').onclick=()=>{S.pt.coklu=null;S.pt.ck=null;render();};});}}
+function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.join(',');const g=S.pt.gorunum||'sag';const cikisMi=s=>s.cikis&&s.cikis<=ayKaydir(ak,1)+'-00';
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${L.length} şube</span></div><div class="ptnav">${ptSubeKutu()}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
   h+=`<div class="seg" style="margin:4px 0 12px" id="ptSeg"><button data-v="veri" class="${g==='veri'?'on':''}">Veri girişi</button><button data-v="sol" class="${g==='sol'?'on':''}">Muhasebe</button><button data-v="sag" class="${g==='sag'?'on':''}">Ödemeler</button></div>`;
   const bagla=()=>{byId('geriL').onclick=listeyeDon;const ad=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;S.ay=y;S.ayElle=true;S.pt.ck=null;puantajAc(S.pt.sube);};byId('ptPrev').onclick=()=>ad(-1);byId('ptNext').onclick=()=>ad(1);
@@ -1730,8 +1732,8 @@ function renderCoklu(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.join(
   if(ck.durum==='yukleniyor')return view(h+`<div class="empty-state"><b>${L.length} şube yükleniyor</b>Her şubenin ${ayAdi(ak)} puantajı okunuyor.</div>`,bagla);
   if(ck.durum==='hata')return view(h+`<div class="banner bad">Şubeler okunamadı (${esc(ck.hata||'')}). <button class="btn" id="ckTekrar" style="margin-left:8px">Tekrar dene</button></div>`,()=>{bagla();byId('ckTekrar').onclick=()=>{S.pt.ck=null;render();};});
   const VS=L.map(sid=>ck.V[sid]).filter(Boolean);
-  const durumNot=(()=>{const t=VS.filter(v=>v.durum==='tahmini').map(v=>subeAdi(v.sid)),y=VS.filter(v=>v.durum==='yok').map(v=>subeAdi(v.sid));
-    return `${t.length?`<p class="note" style="margin-top:8px">Onaylanmamış (çizelge özetinden hesaplandı): ${t.map(esc).join(', ')}. Şubenin kendi ekranındaki rakamla aynı olması için o şubenin haftaları onaylanmış olmalı.</p>`:''}${y.length?`<p class="note" style="margin-top:4px;color:var(--bad)">Bu ay için verisi olmayan: ${y.map(esc).join(', ')}.</p>`:''}`;})();
+  const durumNot=(()=>{const t=VS.filter(v=>v.durum==='tahmini').map(v=>subeAdi(v.sid)),y=VS.filter(v=>v.durum==='yok').map(v=>subeAdi(v.sid)),hs=VS.filter(v=>v.durum==='hata');
+    return `${t.length?`<p class="note" style="margin-top:8px">Onaylanmamış (çizelge özetinden hesaplandı): ${t.map(esc).join(', ')}. Şubenin kendi ekranındaki rakamla aynı olması için o şubenin haftaları onaylanmış olmalı.</p>`:''}${y.length?`<p class="note" style="margin-top:4px;color:var(--bad)">Bu ay için verisi olmayan: ${y.map(esc).join(', ')}.</p>`:''}${hs.length?`<p class="note" style="margin-top:4px;color:var(--bad)">Hesaplanamayan: ${hs.map(v=>esc(subeAdi(v.sid))+' ('+esc(v.hata)+')').join(', ')}.</p>`:''}`;})();
   const subeAc=(sid,gor)=>{S.pt.coklu=null;S.pt.ck=null;S.pt.gorunum=gor;veriBosTemizle();S.pt.vsel=null;puantajAc(sid);window.scrollTo(0,0);};
   if(g==='sag'){const R=[];VS.forEach(V=>V.satir.forEach(x=>R.push({...x,sid:V.sid})));
     const T=R.reduce((t,x)=>{t.hak+=x.hes.hak+x.hes.fmTl+x.hes.paketPrimi+x.hes.ciroPrimi;t.bankaya+=x.hes.bankaya;t.avans+=x.hes.avans+x.hes.araOdeme;t.nakit+=Math.max(x.hes.kalan,0);return t;},{hak:0,bankaya:0,avans:0,nakit:0});
