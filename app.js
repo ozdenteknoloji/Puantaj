@@ -112,7 +112,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=233;
+const APP_SURUM=235;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -2423,9 +2423,20 @@ function bordroCoz(lines){const para=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;const out={i
     if(son&&!/^\s*\d+\s+\S/.test(l)){if((m=l.match(/Bayram\s*(?:\((\d+)\s*G\))?\s*:\s*(\d{1,3}(?:\.\d{3})*,\d{2})/i))){const gun=m[1]?+m[1]:(son.ucret>0?Math.max(1,Math.round(sayi(m[2])/(son.ucret/30))):1);son.bayram=(son.bayram||0)+gun;}
       if((m=l.match(/(?:Ücretli|Yıllık)\s*İzin\s*\((\d+)\s*G\)/i)))son.yillik=(son.yillik||0)+(+m[1]);}if(!out.isyeri&&(m=l.match(/İşyeri\s+Adı\s+(.+)/)))out.isyeri=m[1].replace(/\s+/g,' ').trim();if(!out.donem&&(m=l.match(/Ay\s*\/\s*Yıl\s+([A-ZÇĞİÖŞÜ]+)\s*\/\s*(\d{4})/)))out.donem=m[1]+' '+m[2];
     if((m=l.match(/^\s*(\d+)\s+(.+?)\s+(\d{11})\s+(\d{2}\.\d{2}\.\d{4})(.*)$/))){const rest=m[5];const nums=rest.match(para)||[];const g=rest.match(/(\d[\d.]*,\d{2})\s*([GS])\s+(\d+)/);
-      const eksik=rest.match(/(\d+)\s+Gün/);const nxt=(lines[i+1]||'').trim();const neden=eksik&&/İzin|Rapor|Devamsız|Diğer/i.test(nxt)?nxt.replace(/\s+/g,' '):'';
-      const eg=eksik?+eksik[1]:0;const ck=rest.match(/^\s*(\d{2})\.(\d{2})\.(\d{4})/);son={cikis:ck?`${ck[3]}-${ck[2]}-${ck[1]}`:'',ad:m[2].replace(/\s+/g,' ').trim(),tc:m[3],giris:m[4],sgkGun:g?+g[3]:null,eksikGun:eg,neden,net:nums.length?sayi(nums[nums.length-1]):null,
-        ucret:g?sayi(g[1]):0,detay:true,bayram:0,yillik:0,ucretsiz:/Ücretsiz/i.test(neden)?eg:0,rapor:/Rapor|İstirahat/i.test(neden)?eg:0};out.kisiler.push(son);}
+      const ck=rest.match(/^\s*(\d{2})\.(\d{2})\.(\d{4})/);
+      // Eksik gün metni: çıkış tarihinden sonra, kanun kodundan (05510 + ücret G/S) önceki kısım; uzun metin alt satırlara kayar
+      // ("30 Gün Rapor 1" / "Gün Ücretsiz" / "İzin"). Alt satırlardaki BÜYÜK HARF parçalar ismin devamıdır ("KURTALAN KAAN" / "KURAL").
+      const kx=rest.search(/\s\d{5}\s+-?[\d.]*,\d{2}\s*[GS]/);let on=(kx>=0?rest.slice(0,kx):'').replace(/^\s*\d{2}\.\d{2}\.\d{4}/,'');let ad=m[2];const dev=[];
+      for(let j=i+1;j<lines.length&&j<=i+4;j++){const t=lines[j]||'';if(/^\s*\d+\s+\S.*\d{11}/.test(t)||/Normal\s*Gün|Net\s*Kazanç|Bayram|Toplamlar|\(\d+\s*G\)|:\s*-?\d/.test(t))break;
+        t.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean).forEach(x=>{if(!dev.length&&/^[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.'\- ]*$/.test(x))ad+=' '+x;else dev.push(x);});}
+      const neden=(on+' '+dev.join(' ')).replace(/\s+/g,' ').trim();
+      const sb={cikis:ck?`${ck[3]}-${ck[2]}-${ck[1]}`:'',ad:ad.replace(/\s+/g,' ').trim(),tc:m[3],giris:m[4],sgkGun:g?+g[3]:null,eksikGun:0,neden,net:nums.length?sayi(nums[nums.length-1]):null,
+        ucret:g?sayi(g[1]):0,detay:true,bayram:0,yillik:0,ucretsiz:0,rapor:0,eksikKarisik:0};
+      // "N Gün <neden>" parçaları: ücretsiz izin ve rapor ayrı sayılır; kısmi istihdam (part) eksik gün değildir; tanınmayan neden (devamsızlık, birden fazla vb.)
+      // toplu karşılaştırılır (puantajdaki rapor + ücretsiz izin ile).
+      const re=/(\d+)\s*Gün\s+(.*?)(?=\s+\d+\s*Gün\b|$)/g;let q;while((q=re.exec(neden))){const n=+q[1],t=q[2];if(/Kısmi/i.test(t))continue;sb.eksikGun+=n;
+        if(/Ücretsiz/i.test(t))sb.ucretsiz+=n;else if(/Rapor|İstirahat|Hastal/i.test(t))sb.rapor+=n;else sb.eksikKarisik+=n;}
+      son=sb;out.kisiler.push(son);}
     if((m=l.match(/Toplamlar:/))){son=null;const nums=l.match(para)||[];if(nums.length)out.toplam=sayi(nums[nums.length-1]);}});
   {const m=String(out.donem||'').match(/^(\S+)\s+(\d{4})$/);if(m){const ai=AY.findIndex(a=>ayKatla(a)===ayKatla(m[1]));if(ai>=0){const dk=m[2]+'-'+String(ai+1).padStart(2,'0');out.kisiler.forEach(k=>{k.donemKey=dk;});}}}
   if(out.kisiler.length&&!out.kisiler[0].donemKey)out.kisiler.forEach(k=>{k.uyari=[...(k.uyari||[]),'Bordronun ayı okunamadı, doğru ay olduğunu kontrol edin'];});
@@ -2494,7 +2505,7 @@ function bordroPanel(V){if(kilitEngel()||kesinEngel())return;const ids=Object.ke
 const BORDRO_UST_SINIR=33000;
 // Bordro kontrolü fotoğrafı (tüm liste): tutmayanlar üstte kırmızı, tutanlar, en altta bordroda olup personelde eşleşmeyenler.
 // R: [{ad, alt, b:bordro metni, p:puantaj metni, net, fark:[metin]}], E: [{ad, alt, net}]
-const gunYazi=(g,o)=>[`${g??''}${o&&o.bayram>0?` +${fmt(o.bayram)} bayram`:''}`,o&&o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o&&o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o&&o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean).join(' · ');
+const gunYazi=(g,o)=>[`${g??''}${o&&o.bayram>0?` +${fmt(o.bayram)} bayram`:''}`,o&&o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o&&o.eksikKarisik?`${fmt(o.eksikKarisik)} gün diğer eksik`:'',o&&o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o&&o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean).join(' · ');
 function bordroKontrolGorseli(baslik,altBaslik,R,E){const W=1400,P=40,sc=2;const F='Figtree, Arial, sans-serif';
   const T=R.filter(r=>r.fark.length),U=R.filter(r=>!r.fark.length);const bol=[];
   if(T.length)bol.push({ad:`Tutmayanlar · ${T.length}`,tip:'t',r:T});bol.push({ad:`Tutanlar · ${U.length}`,tip:'u',r:U});if(E.length)bol.push({ad:`Personelde eşleşmeyen · ${E.length}`,tip:'e',r:E});
@@ -2518,10 +2529,12 @@ const farkMetin=f=>`${f.ad}: bordro ${f.b}, puantaj ${f.p}`;
 // Bordro ↔ puantaj gün karşılaştırması. Liste bordrosunda (detay) gün, bayram, yıllık izin, ücretsiz izin ve rapor; tek kişilik pusulada sadece gün.
 // Bordrodaki gün bayramı içermez (bayram ayrı satırda tutar olarak yazar), puantajdaki "gün" de öyle: ikisi ayrı ayrı karşılaştırılır.
 const GUN_KARS=[['gun','sgkGun','gün'],['bayram','bayram','bayram'],['yillik','yillik','yıllık izin'],['ucretsiz','ucretsiz','ücretsiz izin'],['rapor','rapor','rapor']];
-function bordroFark(k,r){if(!r)return[];const F=[];GUN_KARS.forEach(([pk,bk,ad])=>{if(bk!=='sgkGun'&&!k.detay)return;const b=k[bk];if(b==null)return;const p=+(r[pk]||0);if(Math.abs((+b||0)-p)>0.001)F.push({ad,b:fmt(+b||0),p:fmt(p)});});
+function bordroFark(k,r){if(!r)return[];const F=[];
+  if(k.detay&&k.eksikKarisik){const b=k.eksikKarisik+(k.rapor||0)+(k.ucretsiz||0),p=(+r.rapor||0)+(+r.ucretsiz||0);if(Math.abs(b-p)>0.001)F.push({ad:'eksik gün (rapor + ücr. izin)',b:fmt(b),p:fmt(p)});}
+  GUN_KARS.forEach(([pk,bk,ad])=>{if(bk!=='sgkGun'&&!k.detay)return;if(k.eksikKarisik&&(bk==='rapor'||bk==='ucretsiz'))return;const b=k[bk];if(b==null)return;const p=+(r[pk]||0);if(Math.abs((+b||0)-p)>0.001)F.push({ad,b:fmt(+b||0),p:fmt(p)});});
   // Çıkış tarihi (sadece liste bordrosunda yazar). Puantajda sonraki bir aya yazılmış çıkış bu ayın bordrosunda görünmez, karşılaştırılmaz.
   if(k.detay){const pc=r.cikis&&(!k.donemKey||String(r.cikis).slice(0,7)<=k.donemKey)?String(r.cikis):'';if((k.cikis||'')!==pc)F.push({ad:'çıkış',b:trTarih(k.cikis)||'yok',p:trTarih(pc)||'yok'});}return F;}
-function gunOzet(gun,o){const ek=[o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean);
+function gunOzet(gun,o){const ek=[o.yillik?`${fmt(o.yillik)} yıllık izin`:'',o.eksikKarisik?`${fmt(o.eksikKarisik)} gün diğer eksik`:'',o.ucretsiz?`${fmt(o.ucretsiz)} ücr. izin`:'',o.rapor?`${fmt(o.rapor)} rapor`:''].filter(Boolean);
   return `<b>${gun??''}</b>${o.bayram>0?`<span style="color:var(--mut)"> +${fmt(o.bayram)} bayram</span>`:''}${ek.length?`<br><span style="color:var(--mut);font-size:11.5px">${ek.join(' · ')}</span>`:''}`;}
 const bordroOzet=k=>gunOzet(k.sgkGun,k.detay?k:{});
 const farkTag=F=>F.map(f=>`<br><span class="tag warn">${esc(f.ad)}: bordro ${esc(f.b)}, puantaj ${esc(f.p)}</span>`).join('');
