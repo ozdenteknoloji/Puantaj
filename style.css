@@ -643,3 +643,10 @@ table.vg2 tr.oto.red td:last-child{background:var(--surface)}
   .app.ptd #view table.pt:not(.vt):not(.bl) td .tag{margin-left:5px}
   .app.ptd #view table.pt:not(.vt):not(.bl) td{padding-top:13px;padding-bottom:13px}
 }
+
+/* ⋮ menüsünde fazla mesai dönemi: tek satır + kalem */
+.fm-ust{display:flex;align-items:center;gap:10px}.fm-yazi{flex:1;min-width:0}.fm-yazi b,.fm-yazi span{display:block}
+.fm-kalem{flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--navy);font-size:17px;cursor:pointer}
+.fm-kalem.on,.fm-kalem:hover{background:var(--navy-soft)}
+.fm-ac{margin-top:8px}
+.nokta-menu .fm-yazi b{font-size:15px}.nokta-menu .fm-yazi span{font-size:13px;color:var(--mut);margin-top:2px}
