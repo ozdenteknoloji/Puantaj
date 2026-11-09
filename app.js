@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=260;
+const APP_SURUM=261;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1203,6 +1203,13 @@ async function gorselPaylas(cv,ad,baslik){
   if(pc&&navigator.clipboard&&window.ClipboardItem){try{await navigator.clipboard.write([new ClipboardItem({'image/png':bl})]);toast('Fotoğraf kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return;}catch(e){console.error(e);}}
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=ad;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Fotoğraf indirildi; WhatsApp\'a ekleyebilirsiniz.');}
+// Bilgisayarda (fare ile) "WhatsApp / Paylaş": fotoğraf panoya kopyalanır, WhatsApp Web'e Ctrl+V ile yapıştırılır.
+// dosyaF: PNG File döndüren (ya da null) async fonksiyon. Kopyalandıysa true; telefonda veya kopyalanamazsa false (eski paylaşım yolu devam eder).
+// Dosya Promise olarak ClipboardItem'a verilir; böylece görsel hazırlanırken tıklama izni kaybolmaz.
+async function pcPanoyaGorsel(dosyaF){const pc=window.matchMedia&&matchMedia('(pointer:fine)').matches;if(!pc||!navigator.clipboard||!window.ClipboardItem)return false;
+  let bos=false;const pr=Promise.resolve(dosyaF()).then(f=>{if(!f){bos=true;throw new Error('bos');}return f.type==='image/png'?f:new Blob([f],{type:'image/png'});});
+  try{await navigator.clipboard.write([new ClipboardItem({'image/png':pr})]);toast('Fotoğraf kopyalandı. WhatsApp\'ta Ctrl+V ile yapıştırın.');return true;}
+  catch(e){if(bos)return true;console.error(e);return false;}}
 async function panoyaYaz(t){try{await navigator.clipboard.writeText(t);return true;}catch(e){try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok;}catch(_){return false;}}}
 // Bankaya giden IBAN Excel'i (Emre'nin kendi formatı): Sayfa1, B2'den başlar, ŞUBE · AD SOYAD · İBAN; kalın, ortalı, ince kenarlıklı.
 // Biçim için dış kütüphane yok: küçük bir xlsx (zip) burada yazılır.
@@ -2425,7 +2432,7 @@ function odemeCiktisi(V){let tur=tryLS('pm.odTur')||'png';let sade=tryLS('pm.odS
    const indir=f=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);};
    const hazir=async()=>{const L=secili();if(!L.length){toast('Kimse seçilmedi.');return null;}try{return await odemeDosya(V,L,sade,tur);}catch(e){console.error(e);toast('Dosya hazırlanamadı.');return null;}};
    byId('odIndir').onclick=async()=>{const f=await hazir();if(f)indir(f);};
-   byId('odPay').onclick=async()=>{const f=await hazir();if(!f)return;try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+   byId('odPay').onclick=async()=>{if(tur==='png'&&await pcPanoyaGorsel(hazir))return;const f=await hazir();if(!f)return;try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
      indir(f);window.open('https://wa.me/?text='+encodeURIComponent(baslik),'_blank');};
    ciz();});}
 function muhBaslik(V){return `${trBuyukBas(V.sb.ad)} Şube ${AY[+V.ak.slice(5)-1]} Ayı Puantaj Verisi`;}
@@ -2474,12 +2481,12 @@ function muhasebeCiktisi(V){let tur=tryLS('pm.muhTur')||'pdf';const baslik=muhBa
    <div class="seg" id="mTur" style="margin-bottom:10px"><button data-v="pdf" class="${tur==='pdf'?'on':''}">PDF</button><button data-v="png" class="${tur==='png'?'on':''}">Fotoğraf</button></div>
    <img class="share-prev" id="mImg" alt="Puantaj önizleme">
    <div class="row2"><button class="btn grow" id="mIndir">İndir</button><button class="btn primary grow" id="mPay">WhatsApp / Paylaş</button></div>
-   <p class="note yardim">Paylaş'a basınca telefonun paylaşım menüsü açılır, WhatsApp'ı seçin; açıklama "${esc(baslik)}" olarak eklenir. Bilgisayarda dosya indirilir ve WhatsApp açılır, dosyayı sohbete sürükleyin.</p>`,async()=>{
+   <p class="note yardim">Paylaş'a basınca telefonun paylaşım menüsü açılır, WhatsApp'ı seçin; açıklama "${esc(baslik)}" olarak eklenir. Bilgisayarda Fotoğraf seçiliyse panoya kopyalanır, WhatsApp'ta Ctrl+V ile yapıştırın; PDF seçiliyse dosya indirilir, sohbete sürükleyin.</p>`,async()=>{
    const cv=await muhasebeGorseli(V);byId('mImg').src=cv.toDataURL('image/png');
    byId('mTur').querySelectorAll('button').forEach(b=>b.onclick=()=>{tur=b.dataset.v;tryLS('pm.muhTur',tur);byId('mTur').querySelectorAll('button').forEach(q=>q.classList.toggle('on',q===b));});
    const indir=f=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);};
    byId('mIndir').onclick=async()=>{try{indir(await muhasebeDosya(V,tur));}catch(e){toast('Dosya hazırlanamadı.');}};
-   byId('mPay').onclick=async()=>{let f;try{f=await muhasebeDosya(V,tur);}catch(e){toast('Dosya hazırlanamadı.');return;}
+   byId('mPay').onclick=async()=>{if(tur==='png'&&await pcPanoyaGorsel(async()=>{try{return await muhasebeDosya(V,'png');}catch(e){toast('Dosya hazırlanamadı.');return null;}}))return;let f;try{f=await muhasebeDosya(V,tur);}catch(e){toast('Dosya hazırlanamadı.');return;}
      try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:baslik,text:baslik});return;}}catch(e){if(e&&e.name==='AbortError')return;}
      indir(f);window.open('https://wa.me/?text='+encodeURIComponent(baslik),'_blank');};});}
 
