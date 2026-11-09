@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=261;
+const APP_SURUM=262;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -220,19 +220,23 @@ function haftaHesap(p,wid,sb=sube(),H=S.haftalar){let h=0,wd=0,bos=0;const kayit
   return{h,wd,bos,fm:!kayit?0:h-(wd+bos)*sb.gunluk+bonus,kayit};}
 // Haftanın 7 günü de (bu şube + kişinin diğer şubeleri) vardiyalı mı? İzin günü mesaisini ödeyen şube: maaş şubesi dışında çalışılan son günün şubesi, yoksa maaş şubesi.
 // Aynı kişinin birden fazla kaydı varsa (SGK şube devri, SGK'sız devam) hafta kişi bazında birleşik bakılır: her gün o gün çalışan kaydın hücresine bakılır.
-// Sonuç yalnızca pazar günü çalışan kayıt için döner; böylece fazla mesai bonusu kayıtlar toplanırken bir kez sayılır.
-function haftaYedi(p,wid,H=S.haftalar,sid=S.subeId){const ds=weekDays(wid);const ms=odemeSubesi(p,ayKey(ds[6]));let son=null,burada=0;
-  if(!employed(p,ds[6]))return{yedi:false};
-  const grup=S.personel.filter(x=>x.id===p.id||ayniKisi(x,p));
+// Sonuç (sube) yalnızca bu şubede haftanın son vardiyası olan kayıt için döner; böylece fazla mesai bonusu kayıtlar toplanırken bir kez sayılır.
+function haftaYedi(p,wid,H=S.haftalar,sid=S.subeId){const ds=weekDays(wid);let son=null,burada=0;
+  const grup=S.personel.filter(x=>x.id===p.id||ayniKisi(x,p));const pz=grup.find(x=>employed(x,ds[6]))||p;const ms=odemeSubesi(pz,ayKey(ds[6]));
   for(let i=0;i<7;i++){const d=ds[i];const E=grup.filter(x=>employed(x,d));if(!E.length)return{yedi:false};const L=[];if(E.some(x=>isShift(cellOf(x.id,wid,i,H)))){L.push(sid);burada++;}
     E.forEach(x=>{if(!cokSubeli(x))return;const o=digerGunler(x,d,sid);if(o)Object.entries(o).forEach(([s,v])=>{if(isShift(v))L.push(s);});});
     if(!L.length)return{yedi:false};L.forEach(s=>{if(s!==ms)son=s;});}
-  return{yedi:true,sube:burada===7?sid:(son||ms)};}
+  const hedef=burada===7?sid:(son||ms);if(hedef!==sid)return{yedi:true,sube:hedef};
+  // Bu şubede birden fazla kayıt varsa (ör. SGK şube devri hafta ortasında): fazla bu şubede haftanın son vardiyası olan kayda yazılır; böylece bir kez sayılır.
+  let kim=null;for(let i=6;i>=0&&!kim;i--){const x=grup.find(q=>employed(q,ds[i])&&isShift(cellOf(q.id,wid,i,H)));if(x)kim=x;}
+  if(!kim)kim=pz;return{yedi:true,sube:kim.id===p.id?sid:null};}
+// Kaydın o haftadaki son çalıştığı gün (0–6): izinsiz haftanın fazlası bu güne yazılır. Normalde pazar; kayıt hafta içinde bitiyorsa (SGK devri) son günü.
+function yediGunu(p,wid){const ds=weekDays(wid);for(let i=6;i>=0;i--)if(employed(p,ds[i]))return i;return -1;}
 // Bir haftanın kişi bazında ay ay dökümü (takvim ayı hesabıyla aynı kural): kapatılan haftanın özeti için.
 function haftaAyParca(p,wid,sb=sube(),H=S.haftalar){const o={};if(!weekHasEntry(p.id,wid,H))return o;const cs=cokSubeli(p);
   weekDays(wid).forEach((d,i)=>{if(!employed(p,d))return;const ak=ayKey(d);const x=o[ak]=o[ak]||{h:0,fm:0};const v=cellOf(p.id,wid,i,H);
     if(isShift(v)){const s=shiftHours(v);x.h+=s;x.fm+=s-sb.gunluk;}else if(!(v&&KOD[v])&&bosSayilir(p,d))x.fm-=sb.gunluk;
-    if(i===6){const y=haftaYedi(p,wid,H);if(y.yedi&&y.sube===S.subeId)x.fm+=7*sb.gunluk-sb.haftalik;}});
+    if(i===yediGunu(p,wid)){const y=haftaYedi(p,wid,H);if(y.yedi&&y.sube===S.subeId)x.fm+=7*sb.gunluk-sb.haftalik;}});
   Object.values(o).forEach(x=>{x.h=Math.round(x.h*100)/100;x.fm=Math.round(x.fm*100)/100;});return o;}
 // SGK / bordro gün sayısı. Tam ayda eksik gün yoksa her ay 30. Eksik gün varsa takvim günü − eksik gün, en çok 30:
 // 31 çeken ayda 1 gün rapor 30 kalır; Şubat 28 çekerse 27, 29 çekerse 28 olur.
@@ -244,7 +248,7 @@ function ayHesap(p,ak,sb=sube(),H=S.haftalar,bitis=null){p=gorevAyda(p,ak);const
     const v=cellOf(p.id,wid,i,H);const kayit=weekHasEntry(p.id,wid,H);const fmGun=!fmBas||ymd(d)>=fmBas;// geçiş: önceki ayın haftalık döneminde ödenen günler sayılmaz
     if(isShift(v)){const x=shiftHours(v);h+=x;if(fmGun)fm+=x-sb.gunluk;gun++;}else if(v&&KOD[v])kod[v]=(kod[v]||0)+1;else if(kayit&&bosSayilir(p,d)){if(fmGun)fm-=sb.gunluk;bos++;}
     // İzinsiz haftanın fazlası haftanın bittiği güne (pazar) yazılır: hafta iki aya bölünse de pazarın ayına gider.
-    if(i===6&&kayit&&fmGun){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm+=7*sb.gunluk-sb.haftalik;}}
+    if(i===yediGunu(p,wid)&&kayit&&fmGun){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm+=7*sb.gunluk-sb.haftalik;}}
   // Haftalık dönem: pazartesisi bu ayda olan haftalar (örn. Eylül 2026 = 7 Eylül – 4 Ekim); takvim ayından geçişte aradaki günler de
   if(sb.fmDonem==='hafta'){fm=0;fmHaftalari(ak).forEach(wid=>{fm+=haftaHesap(p,wid,sb,H).fm;});fm+=fmGecisGunleri(p,ak,sb,H).fm;}
   const part=p.sekil==='Part',esnaf=isEsnaf(p),fmYok=part||esnaf;
@@ -270,7 +274,7 @@ function fmDonemAraligi(ak,sid=S.subeId,sb=subeAyari(sid,ak)){const t=fmDonemTem
 function fmGecisGunleri(p,ak,sb,H=S.haftalar){const r=fmDonemAraligi(ak,S.subeId,sb);const ilk=fmHaftalari(ak)[0];let fm=0,h=0;
   for(let d=parse(r.bas);ymd(d)<ilk;d=addDays(d,1)){if(!employed(p,d))continue;const wid=mondayOf(d);const i=(d.getDay()+6)%7;const v=cellOf(p.id,wid,i,H);const kayit=weekHasEntry(p.id,wid,H);
     if(isShift(v)){const x=shiftHours(v);h+=x;fm+=x-sb.gunluk;}else if(!(v&&KOD[v])&&kayit&&bosSayilir(p,d))fm-=sb.gunluk;
-    if(i===6&&kayit){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm+=7*sb.gunluk-sb.haftalik;}}
+    if(i===yediGunu(p,wid)&&kayit){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm+=7*sb.gunluk-sb.haftalik;}}
   return{fm,h};}
 // Haftalık dönem: varsayılan = pazartesisi o ayda olan haftalar. Şube ayarında fmSon {"2026-08":"2026-08-30"} (dönemin son günü, pazar) ile
 // ay 1 hafta kısa/uzun seçilebilir; sonraki ay bir önceki ayın bittiği günün ertesinden başlar (hiçbir hafta iki kez sayılmaz ya da boşta kalmaz).
@@ -1677,7 +1681,7 @@ function gunDokumu(pid,ak){try{const p0=S.personel.find(x=>x.id===pid);if(!p0)re
   const fm=[];const fmYok=p.sekil==='Part'||isEsnaf(p);
   const gun=d=>{if(!employed(p,d))return;const wid=mondayOf(d),i=(d.getDay()+6)%7,v=cellOf(p.id,wid,i,H),kayit=weekHasEntry(p.id,wid,H);if(!kayit)return;
     if(isShift(v)){const f=shiftHours(v)-g;if(Math.abs(f)>0.004)fm.push({t:ymd(d),f,a:v.replace('-','–')});}else if(!(v&&KOD[v])&&bosSayilir(p,d))fm.push({t:ymd(d),f:-g,a:'boş'});
-    if(i===6){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm.push({t:ymd(d),f:7*g-sb.haftalik,a:'7 gün çalışma'});}};
+    if(i===yediGunu(p,wid)){const yy=haftaYedi(p,wid,H);if(yy.yedi&&yy.sube===S.subeId)fm.push({t:ymd(d),f:7*g-sb.haftalik,a:'7 gün çalışma'});}};
   if(!fmYok){if(sb.fmDonem==='hafta'){const r=fmDonemAraligi(ak,S.subeId,sb);const W=fmHaftalari(ak);for(let d=parse(r.bas);ymd(d)<W[0];d=addDays(d,1))gun(d);W.forEach(w=>weekDays(w).forEach(gun));}
     else{const bas=fmDonemAraligi(ak,S.subeId,sb).bas;for(let d=new Date(y,m-1,1);d<=last;d=addDays(d,1))if(ymd(d)>=bas)gun(d);}}
   return{n,aralik:ilk?(gn(ilk)+' – '+gn(son)):'',kod,fm,gunluk:g,fmYok,gn};}catch(e){console.error(e);return null;}}
