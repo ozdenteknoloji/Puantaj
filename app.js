@@ -105,7 +105,7 @@ let kayitT=null;
 function kayitCiz(){let el=document.getElementById('kayitDurum');if(!el){el=document.createElement('div');el.id='kayitDurum';el.setAttribute('role','status');
     el.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;padding:8px 14px;border-radius:999px;font:600 13px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;max-width:92vw;text-align:center';document.body.appendChild(el);}
   clearTimeout(kayitT);if(!KAYIT.n){el.style.display='none';return;}
-  const goster=()=>{if(!KAYIT.n){el.style.display='none';return;}const off=navigator.onLine===false;el.style.background=off?'#b42318':'#1f3a6b';el.style.color='#fff';
+  const goster=()=>{if(!KAYIT.n){el.style.display='none';return;}const off=navigator.onLine===false;el.style.background=off?'#b42318':'#8a2432';el.style.color='#fff';
     el.textContent=off?`İnternet yok · ${KAYIT.n} değişiklik bu cihazda bekliyor, internet gelince gönderilecek.`:`Kaydediliyor… (${KAYIT.n})`;el.style.display='block';};
   if(navigator.onLine===false)goster();else kayitT=setTimeout(goster,1500);}
 window.addEventListener('online',kayitCiz);window.addEventListener('offline',kayitCiz);
@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=263;
+const APP_SURUM=264;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1186,7 +1186,7 @@ function ibanGorseli(ak){const L=ibanListe(ak);const W=1400,P=40,RH=104,SH=60,NH
   const H=P+130+bol.reduce((t,b)=>t+SH+Math.max(b.r.length,1)*(b.pas?NH:RH),0)+P+30;
   const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;const c=cv.getContext('2d');c.scale(sc,sc);
   c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='middle';
-  c.fillStyle='#1f3a6b';c.font=`800 42px ${F}`;c.fillText(`${AY[+ak.slice(5)-1]} Ayı İşe Girenlerin IBAN Listesi`,P,P+30);
+  c.fillStyle='#8a2432';c.font=`800 42px ${F}`;c.fillText(`${AY[+ak.slice(5)-1]} Ayı İşe Girenlerin IBAN Listesi`,P,P+30);
   c.fillStyle='#6b7280';c.font=`600 26px ${F}`;c.fillText(`${ayAdi(ak)} · tüm şubeler`,P,P+80);
   const eks=[...L.g,...L.u].filter(p=>!p.iban).length;if(eks){c.textAlign='right';c.fillStyle='#b42318';c.font=`800 28px ${F}`;c.fillText(`${eks} kişinin IBAN'ı eksik`,W-P,P+30);c.textAlign='left';}
   let y=P+130;
@@ -2646,9 +2646,9 @@ function bordroKontrolGorseli(baslik,altBaslik,R,E){const W=2400,P=44,sc=2;const
   const X={ad:P,sb:560,b:760,p:1220,f:1680,n:W-P},RH=66,FL=30,SH=54,HH=52;const rh=r=>RH+Math.max(0,(r.fark||[]).length-1)*FL;
   const H=P+120+HH+bol.reduce((t,b)=>t+SH+(b.r.length?b.r.reduce((x,r)=>x+rh(r),0):RH),0)+P+30;
   const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;const c=cv.getContext('2d');c.scale(sc,sc);c.fillStyle='#fff';c.fillRect(0,0,W,H);c.textBaseline='middle';
-  c.fillStyle='#1f3a6b';c.font=`800 44px ${F}`;c.fillText(baslik,P,P+26);c.fillStyle='#6b7280';c.font=`600 26px ${F}`;c.fillText(altBaslik,P,P+76);
+  c.fillStyle='#8a2432';c.font=`800 44px ${F}`;c.fillText(baslik,P,P+26);c.fillStyle='#6b7280';c.font=`600 26px ${F}`;c.fillText(altBaslik,P,P+76);
   c.textAlign='right';c.font=`800 32px ${F}`;if(T.length){c.fillStyle='#b42318';c.fillText(`${T.length} kişide fark var`,W-P,P+26);}else{c.fillStyle='#067647';c.fillText('Hepsi tutuyor ✓',W-P,P+26);}c.textAlign='left';
-  let y=P+120;c.fillStyle='#1f3a6b';c.fillRect(0,y,W,HH);c.fillStyle='#fff';c.font=`800 22px ${F}`;
+  let y=P+120;c.fillStyle='#8a2432';c.fillRect(0,y,W,HH);c.fillStyle='#fff';c.font=`800 22px ${F}`;
   [['AD SOYAD',X.ad],['ŞUBE',X.sb],['BORDRO',X.b],['PUANTAJ',X.p],['FARK',X.f]].forEach(([t,x])=>c.fillText(t,x,y+HH/2));c.textAlign='right';c.fillText('NET ÖDENEN',X.n,y+HH/2);c.textAlign='left';y+=HH;
   bol.forEach(b=>{c.fillStyle=b.tip==='t'?'#fdecea':b.tip==='e'?'#f4f4f5':'#eef1f6';c.fillRect(0,y,W,SH);c.font=`800 22px ${F}`;c.fillStyle=b.tip==='t'?'#b42318':b.tip==='e'?'#6b7280':'#4b5563';c.fillText(b.ad.toLocaleUpperCase('tr-TR'),P,y+SH/2);y+=SH;
     if(!b.r.length){c.fillStyle='#6b7280';c.font=`600 24px ${F}`;c.fillText('Kimse yok.',P,y+RH/2);y+=RH;return;}
@@ -2764,7 +2764,7 @@ function topluBordroPanel(ak){const sid=new Set(S.subeIds);const B=t=>String(t||
 /* ================= Paylaş (görsel) ================= */
 async function cizelgeGorseli(withFm,gruplar){const wid=S.hafta;const sb=haftaAyari(wid);const ds=weekDays(wid);const ak=gosterAy(wid);const kisiler=cizelgeKisileri(wid).filter(p=>!gruplar||gruplar.includes(p.grup||'K'));
   try{await document.fonts.ready;}catch(e){}
-  const C={navy:'#1f3a6b',ink:'#152033',mut:'#667287',line:'#d9dee8',open:'#fbe58a',openI:'#4a3a00',close:'#f0b24d',closeI:'#3c2500',code:'#e9edf3',codeI:'#33415a',bg:'#ffffff',soft:'#f3f5f9'};
+  const C={navy:'#8a2432',ink:'#152033',mut:'#667287',line:'#d9dee8',open:'#fbe58a',openI:'#4a3a00',close:'#f0b24d',closeI:'#3c2500',code:'#e9edf3',codeI:'#33415a',bg:'#ffffff',soft:'#f3f5f9'};
   const pad=28,nameW=240,dayW=150,fmW=withFm?96:0,rowH=42,groupH=34,headH=100,dayH=62;const groups=new Set(kisiler.map(p=>p.grup||'K'));
   const W=pad*2+nameW+dayW*7+fmW*2,H=headH+dayH+kisiler.length*rowH+groups.size*groupH+70;const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;const x=cv.getContext('2d');x.scale(2,2);
   const F=(w,s,n)=>`${w} ${s}px ${n?'"Barlow Semi Condensed","Arial Narrow",sans-serif':'Figtree,system-ui,sans-serif'}`;

@@ -1,9 +1,9 @@
 /* Puantaj Merkezi — telefon öncelikli tek sütun; geniş ekranda 1100px ortalı */
 :root{
   --bg:#f3f5f9; --surface:#ffffff; --ink:#152033; --mut:#667287; --line:#e2e6ee; --soft:#eceff5;
-  --navy:#1f3a6b; --navy-ink:#ffffff; --navy-soft:#e6ecf7; --accent-ink:#1f3a6b;
+  --navy:#8a2432; --navy-ink:#ffffff; --navy-soft:#f7e3e6; --accent-ink:#8a2432;
   --open:#fbe58a; --open-ink:#4a3a00; --close:#f0b24d; --close-ink:#3c2500;
-  --off:#1f3a6b; --off-ink:#ffffff; --code:#e9edf3; --code-ink:#33415a;
+  --off:#8a2432; --off-ink:#ffffff; --code:#e9edf3; --code-ink:#33415a;
   --warn:#9a5b00; --warn-bg:#fff2d6; --bad:#b42323; --bad-bg:#fde8e8; --ok:#16774a; --ok-bg:#e3f4ea;
   --yel:#fff4bf; --red:#fde3e3;
   --f-ui:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -12,9 +12,9 @@
 }
 @media (prefers-color-scheme: dark){:root{
   --bg:#0f1520; --surface:#18202e; --ink:#e7ebf2; --mut:#93a0b5; --line:#2a3446; --soft:#222b3b;
-  --navy:#2b4c86; --navy-ink:#ffffff; --navy-soft:#22314d; --accent-ink:#e7ebf2;
+  --navy:#9b2c3e; --navy-ink:#ffffff; --navy-soft:#3d1f26; --accent-ink:#e7ebf2;
   --open:#e7cc5e; --open-ink:#2b2200; --close:#d9963a; --close-ink:#231500;
-  --off:#3a5fa3; --off-ink:#ffffff; --code:#273246; --code-ink:#c9d2e0;
+  --off:#a63348; --off-ink:#ffffff; --code:#273246; --code-ink:#c9d2e0;
   --warn:#f2bb5c; --warn-bg:#3a2c12; --bad:#f08a8a; --bad-bg:#3d1c1f; --ok:#6fd3a0; --ok-bg:#16352a;
   --yel:#3b3416; --red:#3d1c1f; color-scheme:dark}}
 *{box-sizing:border-box}
@@ -654,7 +654,7 @@ table.vg2 tr.oto.red td:last-child{background:var(--surface)}
 /* Ayarlar: bölüm kartları alt alta; bölüm başlığı ve sade şube tablosu */
 .ygrid{display:flex;flex-direction:column;gap:12px;margin:8px auto 0;max-width:760px}
 .ykart{display:flex;gap:14px;align-items:center;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;cursor:pointer;font:inherit;color:inherit;width:100%}
-.ykart:hover{border-color:var(--navy);box-shadow:0 2px 10px rgba(31,58,107,.08)}
+.ykart:hover{border-color:var(--navy);box-shadow:0 2px 10px rgba(138,36,50,.08)}
 .ykart .ik{width:46px;height:46px;border-radius:12px;background:var(--navy-soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
 .ykart .yk-m{flex:1;min-width:0}.ykart b{display:block;font-size:16px}.ykart span{display:block;font-size:13px;color:var(--mut);margin-top:3px;line-height:1.35}
 .ykart em{display:inline-block;margin-top:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--navy);background:var(--soft);border-radius:8px;padding:2px 8px}
