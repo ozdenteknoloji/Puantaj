@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=270;
+const APP_SURUM=271;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1816,7 +1816,7 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
   const yeniBos=()=>{const son=(S.pt.cvSat||[])[(S.pt.cvSat||[]).length-1]||{};return{id:rid(),tarih:son.tarih||trTarih(bugunIso),sube:L.includes(son.sube)?son.sube:'',ad:'',tur:'',miktar:'',ack:'',hata:''};};
   const bosS=r=>!String(r.ad||'').trim()&&!r.tur&&!String(r.miktar||'').trim()&&!String(r.ack||'').trim()&&!r.turYazi;
   if(!Array.isArray(S.pt.cvSat)||S.pt.cvAy!==ak){S.pt.cvSat=[];S.pt.cvAy=ak;}
-  S.pt.cvSat=S.pt.cvSat.filter(r=>!r.kaydedildi);while(S.pt.cvSat.filter(bosS).length<5)S.pt.cvSat.push(yeniBos());
+  S.pt.cvSat=S.pt.cvSat.filter(r=>!r.kaydedildi);if(!S.pt.cvSat.some(bosS))S.pt.cvSat.push(yeniBos());
   // Satır dolu sayılır: tarih, şube, ad, tür ve miktar yazılmış (tanınmasa da). Dolu satır, satırdan çıkınca kendiliğinden kaydedilir.
   const doluS=r=>!!(String(r.tarih||'').trim()&&(r.sube||r.subeYazi)&&String(r.ad||'').trim()&&(r.tur||r.turYazi)&&String(r.miktar??'').trim()!=='');
   // Bir şubede o ay çalışanlar: çalıştığı şubeler (ana şube, SGK şubesi, ek şubeler) ve maaşı o şubede ödenenler.
@@ -1841,7 +1841,7 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
   h+=`<div class="banner" style="margin-bottom:10px">Tablonun en altındaki boş satırlara yazın ya da Excel'den yapıştırın (sütun sırası: Tarih · Şube · Ad soyad · Veri türü · Miktar · Açıklama). Satırı doldurup başka satıra geçince kendiliğinden kaydedilir ve Şube sütunundaki şubeye yazılır. Uyumsuz satır kırmızı kalır, kaydedilmez. Kayıtlı satırları düzeltmek ya da silmek için tek şubeye dönün.</div>`+kfBar('cveri')+`
     <div class="tbl-wrap dondur"><table class="pt vt vg2" id="cvGrid"><thead><tr><th class="rn">#</th>${CV.map(c=>kfBaslik('cveri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>${VR.map((v,i)=>`<tr class="ck"><td class="rn">${i+1}</td><td>${trTarih(v.tarih)}</td><td class="l sbcol">${esc(subeAdi(v.sid))}</td><td class="l"><b>${esc(v.ad||'')}</b></td><td class="l">${esc((veriTur(v.tur)||{}).ad||v.tur)}</td><td style="text-align:right">${mik(v)}</td><td class="l">${esc(v.aciklama||'')}</td><td></td></tr>`).join('')}${S.pt.cvSat.map(yeniH).join('')}</tbody></table></div>
     <datalist id="cvKisiler">${adListe.map(a=>`<option value="${esc(a)}"></option>`).join('')}</datalist>
-    <div class="actions" style="margin:8px 0 4px"><button class="mini" id="cvSatir10">+10 satır</button></div>${durumNot}`;
+    <div class="actions" style="margin:8px 0 4px"><button class="mini" id="cvSatir1">+ Satır ekle</button></div>${durumNot}`;
   return view(h,()=>{bagla();kfBag('cveri',CV,VR0);byId('ptMenu').onclick=menuTek('veri');
     const grid=byId('cvGrid');const KS=['tarih','sube','ad','tur','miktar','ack'];
     const yaz=(r,k,val)=>{val=String(val==null?'':val);
@@ -1853,7 +1853,8 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
       else if(k==='ack')r.ack=val.trim();};
     const girdi=e=>{const el=e.target;const k=el.dataset&&el.dataset.k;const tr=el.closest&&el.closest('tr.cvyeni');if(!k||!tr)return;const r=S.pt.cvSat[+tr.dataset.i];if(!r)return;
       if(k==='tur'||k==='sube'||k==='ad'||k==='tarih'||k==='miktar'||k==='ack'){if(k==='ad')r.ad=el.value;else if(k==='miktar')r.miktar=el.value;else if(k==='ack')r.ack=el.value;else yaz(r,k,el.value);}
-      if(r.hata){r.hata='';tr.classList.remove('hata');const d=tr.querySelector('td.dur');if(d)d.textContent='';}};
+      if(r.hata){r.hata='';tr.classList.remove('hata');const d=tr.querySelector('td.dur');if(d)d.textContent='';}
+      if(!bosS(r)&&!S.pt.cvSat.some(x=>x!==r&&!x.kaydedildi&&bosS(x)))bosEkle();};
     grid.addEventListener('input',girdi);grid.addEventListener('change',girdi);
     grid.addEventListener('paste',e=>{const el=e.target;const k=el.dataset&&el.dataset.k;const tr0=el.closest&&el.closest('tr.cvyeni');if(!k||!tr0)return;
       const t=(e.clipboardData||window.clipboardData).getData('text').replace(/\r/g,'');if(!/[\t\n]/.test(t.replace(/\n+$/,'')))return;e.preventDefault();
@@ -1864,10 +1865,12 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
     // Satırdan çıkınca (Enter, Tab, tıklama): satır doluysa kaydedilir; Enter alttaki satırın aynı hücresine geçer.
     grid.addEventListener('focusout',e=>{const tr=e.target.closest&&e.target.closest('tr.cvyeni');if(!tr)return;setTimeout(()=>{if(tr.contains(document.activeElement))return;const r=S.pt.cvSat[+tr.dataset.i];if(r&&!r.kaydedildi&&!r.kaydediliyor&&doluS(r))kaydet([r]);},0);});
     grid.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.isComposing)return;const el=e.target;const k=el.dataset&&el.dataset.k;const tr=el.closest&&el.closest('tr.cvyeni');if(!k||!tr)return;e.preventDefault();
-      let n=tr.nextElementSibling;if(!n){for(let i=0;i<10;i++)S.pt.cvSat.push(yeniBos());const r=S.pt.cvSat[+tr.dataset.i];if(r&&doluS(r))kaydet([r]);S.pt.odakI=+tr.dataset.i+1;S.pt.odakK=k;S.pt.zorla=true;render();return;}
+      let n=tr.nextElementSibling;if(!n)n=bosEkle();
       const x=n.querySelector(`[data-k="${k}"]`);if(x)x.focus();});
     {const oi=S.pt.odakI,ok=S.pt.odakK;S.pt.odakI=null;if(oi!=null){const x=grid.querySelector(`tr.cvyeni[data-i="${oi}"] [data-k="${ok}"]`);if(x)x.focus();}}
-    byId('cvSatir10').onclick=()=>{for(let i=0;i<10;i++)S.pt.cvSat.push(yeniBos());S.pt.zorla=true;render();};
+    // Yeni boş satır: yeniden çizmeden tablonun sonuna eklenir (yazılan hücrede odak kalır).
+    const bosEkle=()=>{const nr=yeniBos();S.pt.cvSat.push(nr);const tb=grid.querySelector('tbody');tb.insertAdjacentHTML('beforeend',yeniH(nr,S.pt.cvSat.length-1));return tb.lastElementChild;};
+    byId('cvSatir1').onclick=()=>{const tr=bosEkle();const x=tr&&tr.querySelector('[data-k="ad"]');if(x)x.focus();};
     // Satırı ekranda işaretler (yeniden çizmeden: o an başka hücreye yazılıyor olabilir).
     const isaretle=r=>{const g=byId('cvGrid');if(!g)return;const tr=g.querySelector(`tr.cvyeni[data-i="${S.pt.cvSat.indexOf(r)}"]`);if(!tr)return;tr.classList.toggle('hata',!!r.hata);tr.classList.toggle('kayitli',!!r.kaydedildi);
       const d=tr.querySelector('td.dur');if(d){d.textContent=r.hata||(r.kaydedildi?'Kaydedildi ✓':'');d.style.color=r.hata?'var(--bad)':'var(--ok)';}if(r.kaydedildi)tr.querySelectorAll('input,select').forEach(x=>x.disabled=true);};
