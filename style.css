@@ -704,3 +704,11 @@ table.pt thead tr.ust th.l{text-align:left;padding-left:12px}
 .tbl-wrap.dondur table.pt.dnpc tr.cikis td:nth-child(n){background:var(--yel)!important}
 .tbl-wrap.dondur table.pt.dnpc tr.eksi td:nth-child(n){background:var(--red)!important}
 .tbl-wrap.dondur table.pt.dnpc tr.tot td:nth-child(n){background:var(--soft)!important}
+/* Tümü modu veri girişi: yeni satırlar (en altta) */
+table.vg2 tr.cvyeni td{background:var(--surface)}
+table.vg2 tr.cvyeni:first-of-type td{border-top:2px solid var(--line)}
+table.vg2 tr.cvyeni.hata td{background:var(--bad-bg)}
+table.vg2 td.bi input[data-k]{width:100%;min-width:90px}
+table.vg2 td.bi input[data-k="ad"]{min-width:200px}
+table.vg2 td.bi input[data-k="ack"]{min-width:180px}
+table.vg2 td.bi select[data-k]{min-width:140px;width:100%}

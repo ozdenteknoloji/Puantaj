@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=266;
+const APP_SURUM=267;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -752,7 +752,14 @@ function subeBar(){if(S.subeIds.length<2||!['cizelge','personel','ay'].includes(
 let SCR_K='';
 function view(html,after){const sk=[S.tab,S.subeId,S.pgor,S.pt&&S.pt.sube,S.pt&&S.pt.gorunum,S.ay,S.ynt].join('|');const eskiW=SCR_K===sk?[...document.querySelectorAll('#view .tbl-wrap.dondur')].map(w=>[w.scrollLeft,w.scrollTop]):[];SCR_K=sk;const ap=document.querySelector('.app');if(ap){ap.classList.toggle('wide',(S.tab==='puantaj'&&!!S.pt.sube)||['cizelge','personel','ay'].includes(S.tab));ap.classList.toggle('ptd',S.tab==='puantaj'&&!!S.pt.sube);}kilitTakip();byId('view').innerHTML=subeBar()+kilitBandi()+html;
   if(eskiW.length)document.querySelectorAll('#view .tbl-wrap.dondur').forEach((w,i)=>{const o=eskiW[i];if(o){w.scrollLeft=o[0];w.scrollTop=o[1];}});
-  after&&after();kilitUygula();dondurUstAyarla();}
+  after&&after();kilitUygula();dondurUstAyarla();tabloSigdir();
+  // Veri girişi yeni açıldığında (ekran değiştiğinde) tablo en alttaki boş satıra insin; yeniden çizimde kaydırma yerinde kalır (yukarıdaki geri yükleme).
+  if(!eskiW.length){const g=document.querySelector('#view #vGrid,#view #cvGrid');const w=g&&g.closest('.tbl-wrap');if(w)w.scrollTop=w.scrollHeight;}}
+// Puantaj tabloları: sayfa kaymaz, sadece tablo kayar (tek kaydırma). Tablo ekranın kalanını kaplar; altında kalan içerik (not, düğme, alt boşluk) için yer bırakılır.
+function tabloSigdir(){if(!(S.tab==='puantaj'&&(S.pt.sube||S.pt.coklu)))return;const w=document.querySelector('#view .tbl-wrap.dondur');if(!w)return;
+  w.style.maxHeight='none';const r=w.getBoundingClientRect();const ust=r.top+window.scrollY;const alt=document.documentElement.scrollHeight-(r.bottom+window.scrollY);
+  const h=Math.max(220,Math.floor(window.innerHeight-ust-alt));w.style.maxHeight=h+'px';}
+{let _rt=null;window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(tabloSigdir,120);});}
 // "Bölmeleri dondur": tablo başındaki toplam satırı (tbody tr.tot.ust) başlık satırının hemen altında sabit kalır.
 function dondurUstAyarla(){document.querySelectorAll('#view .tbl-wrap.dondur table.pt').forEach(t=>{const r=t.querySelector('tbody tr.tot.ust');if(!r)return;const th=t.querySelector('thead tr:first-child th');const h=th?th.getBoundingClientRect().height:0;r.querySelectorAll('td').forEach(c=>c.style.top=h+'px');});}
 // Ekrandaki tablonun isimlerini (filtre ve sıralama neyse o sırayla) alt alta panoya kopyalar: veri girişinde Ad soyad sütununa yapıştırmak için.
@@ -1785,12 +1792,74 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
   const VR0=[];VS.forEach(V=>(V.D.veri||[]).forEach(v=>{if(!v||!v.tur||v.miktar===''||v.miktar==null)return;if(v.tarih&&v.tarih.slice(0,7)!==ak)return;VR0.push({...v,sid:V.sid});}));
   VR0.sort((a,b)=>String(subeAdi(a.sid)).localeCompare(String(subeAdi(b.sid)),'tr')||String(a.tarih||'').localeCompare(String(b.tarih||''))||String(a.ad||'').localeCompare(String(b.ad||''),'tr'));
   const mik=v=>{const t=veriTur(v.tur);return t&&t.b==='₺'?tl(sayi(v.miktar)):`${fmt(sayi(v.miktar))}${t&&t.b?' '+t.b:''}`;};
-  const CV=[{k:'sube',ad:'Şube',v:x=>subeAdi(x.sid),l:1},{k:'tarih',ad:'Tarih',v:x=>trTarih(x.tarih),n:x=>x.tarih||''},{k:'ad',ad:'Ad soyad',v:x=>x.ad||'',l:1},{k:'tur',ad:'Veri türü',v:x=>{const t=veriTur(x.tur);return t?t.ad:x.tur;},l:1},{k:'mik',ad:'Miktar',v:x=>mik(x),n:x=>sayi(x.miktar)},{k:'ack',ad:'Açıklama',v:x=>x.aciklama||'',l:1}];
+  // Sütun sırası Excel'deki VERİ GİRİŞ sayfasıyla aynı: Tarih · Şube · Ad soyad · Veri türü · Miktar · Açıklama (yapıştırma bu sırayla).
+  const CV=[{k:'tarih',ad:'Tarih',v:x=>trTarih(x.tarih),n:x=>x.tarih||''},{k:'sube',ad:'Şube',v:x=>subeAdi(x.sid),l:1},{k:'ad',ad:'Ad soyad',v:x=>x.ad||'',l:1},{k:'tur',ad:'Veri türü',v:x=>{const t=veriTur(x.tur);return t?t.ad:x.tur;},l:1},{k:'mik',ad:'Miktar',v:x=>mik(x),n:x=>sayi(x.miktar)},{k:'ack',ad:'Açıklama',v:x=>x.aciklama||'',l:1}];
   const VR=kfUygula('cveri',CV,VR0);
-  h+=`<div class="banner" style="margin-bottom:10px">Birden fazla şube seçiliyken veri girişi <b>sadece görüntüleme</b>. Yazmak için tek şube seçin.</div>`+kfBar('cveri')+`
-    <div class="tbl-wrap dondur"><table class="pt dn3"><thead><tr>${CV.map(c=>kfBaslik('cveri',c,c.l?'l':'')).join('')}</tr></thead><tbody>${VR.map((v,i)=>`<tr class="ck"><td class="l sbcol">${esc(subeAdi(v.sid))}</td><td>${trTarih(v.tarih)}</td><td class="l"><b>${esc(v.ad||'')}</b></td><td class="l">${esc((veriTur(v.tur)||{}).ad||v.tur)}</td><td style="text-align:right">${mik(v)}</td><td class="l">${esc(v.aciklama||'')}</td></tr>`).join('')||'<tr><td class="l" colspan="6">Gösterilecek giriş yok.</td></tr>'}</tbody></table></div>${durumNot}`;
-  return view(h,()=>{bagla();kfBag('cveri',CV,VR0);byId('ptMenu').onclick=menuTek('veri');});}
-function renderPuantajDetay(){if(cokluAcik())return renderCoklu();if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
+  // ---- Yeni satırlar (tablonun en altı): her satır Şube sütunundaki şubenin veri girişine yazılır; kişi o şubede çalışmıyorsa satır kaydedilmez ----
+  const turlar=VERI_TUR.filter(t=>!t.gizli);const rid=()=>Math.random().toString(36).slice(2,10);
+  const bugunIso=ymd(today()).slice(0,7)===ak?ymd(today()):ymd(new Date(+ak.slice(0,4),+ak.slice(5),0));
+  const yeniBos=()=>{const son=(S.pt.cvSat||[])[(S.pt.cvSat||[]).length-1]||{};return{id:rid(),tarih:son.tarih||trTarih(bugunIso),sube:L.includes(son.sube)?son.sube:'',ad:'',tur:'',miktar:'',ack:'',hata:''};};
+  if(!Array.isArray(S.pt.cvSat)||S.pt.cvAy!==ak){S.pt.cvSat=[];S.pt.cvAy=ak;}
+  while(S.pt.cvSat.length<5)S.pt.cvSat.push(yeniBos());
+  const bosS=r=>!String(r.ad||'').trim()&&!r.tur&&!String(r.miktar||'').trim()&&!String(r.ack||'').trim()&&!r.turYazi;
+  // Bir şubede o ay çalışanlar: çalıştığı şubeler (ana şube, SGK şubesi, ek şubeler) ve maaşı o şubede ödenenler.
+  const kisiL=sid=>S.personel.filter(p=>(subedeAktif(p,sid)||odemeSubesi(p,ak)===sid)&&aktifAyda(p,ak));
+  const dogrula=r=>{const sid=r.sube;
+    if(!sid)return{hata:r.subeYazi?`Şube tanınmadı: ${r.subeYazi}`:'Şube seçin'};if(!L.includes(sid))return{hata:'Bu şube seçili şubeler arasında değil'};
+    const iso=trTarihCoz(r.tarih);if(!iso)return{hata:'Tarih okunamadı (gg.aa.yyyy)'};if(iso.slice(0,7)!==ak)return{hata:`Tarih ${ayAdi(ak)} ayında olmalı`};
+    if(!r.tur)return{hata:r.turYazi?`Veri türü tanınmadı: ${r.turYazi}`:'Veri türü seçin'};const t=veriTur(r.tur);
+    const adT=String(r.ad||'').trim();if(!adT)return{hata:'Ad soyad yazın'};const k=isimAnahtar(adT);const p=kisiL(sid).find(q=>isimAnahtar(q.ad)===k);
+    if(!p)return{hata:S.personel.some(q=>isimAnahtar(q.ad)===k)?`${adT} ${subeAdi(sid)} şubesinde çalışan değil (Personel → Çalıştığı şubeler)`:'Böyle bir personel yok'};
+    const ms=String(r.miktar||'').trim();if(!ms)return{hata:'Miktar yok'};if(!/\d/.test(ms))return{hata:'Miktar sayı olmalı'};const n=sayi(ms);if(!isFinite(n)||n===0)return{hata:'Miktar sayı olmalı'};if(Math.abs(n)>1000000)return{hata:'Miktar 1.000.000 üstünde olamaz'};
+    return{v:{id:rid(),sira:yeniSira(),tarih:iso,ad:adBuyuk(p.ad),pid:'',tur:t.k,miktar:n,aciklama:String(r.ack||'').trim(),kim:S.me.adSoyad||S.me.kullaniciAdi||'',zaman:new Date().toISOString()}};};
+  const yeniH=(r,i)=>`<tr class="cvyeni ${r.hata?'hata':''}" data-i="${i}"><td class="rn">${VR.length+i+1}</td>
+    <td class="bi"><input data-k="tarih" value="${esc(r.tarih)}" placeholder="gg.aa.yyyy" inputmode="numeric" autocomplete="off"></td>
+    <td class="bi"><select data-k="sube"><option value=""></option>${L.map(id=>`<option value="${esc(id)}" ${r.sube===id?'selected':''}>${esc(subeAdi(id))}</option>`).join('')}</select></td>
+    <td class="bi"><input data-k="ad" list="cvKisiler" value="${esc(r.ad)}" placeholder="Ad soyad" autocomplete="off"></td>
+    <td class="bi"><select data-k="tur"><option value=""></option>${turlar.map(t=>`<option value="${t.k}" ${r.tur===t.k?'selected':''}>${esc(t.ad)}</option>`).join('')}</select></td>
+    <td class="bi"><input data-k="miktar" value="${esc(r.miktar)}" inputmode="decimal" autocomplete="off" style="text-align:right"></td>
+    <td class="bi"><input data-k="ack" value="${esc(r.ack)}" autocomplete="off"></td>
+    <td class="dur" style="color:var(--bad);font-size:12px;min-width:180px">${esc(r.hata||'')}</td></tr>`;
+  const adListe=[...new Set(L.flatMap(sid=>kisiL(sid).map(p=>adBuyuk(p.ad))))].sort((a,b)=>a.localeCompare(b,'tr'));
+  h+=`<div class="banner" style="margin-bottom:10px">Tablonun en altındaki boş satırlara yazın ya da Excel'den yapıştırın (sütun sırası: Tarih · Şube · Ad soyad · Veri türü · Miktar · Açıklama). Her satır, Şube sütunundaki şubeye yazılır. Kişi o şubede çalışmıyorsa satır kırmızı olur ve kaydedilmez. Kayıtlı satırları düzeltmek ya da silmek için tek şubeye dönün.</div>`+kfBar('cveri')+`
+    <div class="tbl-wrap dondur"><table class="pt vt vg2" id="cvGrid"><thead><tr><th class="rn">#</th>${CV.map(c=>kfBaslik('cveri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>${VR.map((v,i)=>`<tr class="ck"><td class="rn">${i+1}</td><td>${trTarih(v.tarih)}</td><td class="l sbcol">${esc(subeAdi(v.sid))}</td><td class="l"><b>${esc(v.ad||'')}</b></td><td class="l">${esc((veriTur(v.tur)||{}).ad||v.tur)}</td><td style="text-align:right">${mik(v)}</td><td class="l">${esc(v.aciklama||'')}</td><td></td></tr>`).join('')}${S.pt.cvSat.map(yeniH).join('')}</tbody></table></div>
+    <datalist id="cvKisiler">${adListe.map(a=>`<option value="${esc(a)}"></option>`).join('')}</datalist>
+    <div class="actions" style="margin:10px 0 4px"><button class="btn primary" id="cvKaydet">Satırları kaydet</button><button class="mini" id="cvSatir10">+10 satır</button></div>${durumNot}`;
+  return view(h,()=>{bagla();kfBag('cveri',CV,VR0);byId('ptMenu').onclick=menuTek('veri');
+    const grid=byId('cvGrid');const KS=['tarih','sube','ad','tur','miktar','ack'];
+    const yaz=(r,k,val)=>{val=String(val==null?'':val);
+      if(k==='tarih'){const d=trTarihCoz(val);r.tarih=d?trTarih(d):val.trim();}
+      else if(k==='sube'){const id=L.find(x=>isimAnahtar(subeAdi(x))===isimAnahtar(val)||x===val);r.sube=id||'';r.subeYazi=id?'':val.trim();}
+      else if(k==='ad')r.ad=val.trim();
+      else if(k==='tur'){const t=veriTur(val)?val:turCoz(val);r.tur=t&&turlar.some(x=>x.k===t)?t:'';r.turYazi=r.tur?'':val.trim();}
+      else if(k==='miktar')r.miktar=val.trim();
+      else if(k==='ack')r.ack=val.trim();};
+    const girdi=e=>{const el=e.target;const k=el.dataset&&el.dataset.k;const tr=el.closest&&el.closest('tr.cvyeni');if(!k||!tr)return;const r=S.pt.cvSat[+tr.dataset.i];if(!r)return;
+      if(k==='tur'||k==='sube'||k==='ad'||k==='tarih'||k==='miktar'||k==='ack'){if(k==='ad')r.ad=el.value;else if(k==='miktar')r.miktar=el.value;else if(k==='ack')r.ack=el.value;else yaz(r,k,el.value);}
+      if(r.hata){r.hata='';tr.classList.remove('hata');const d=tr.querySelector('td.dur');if(d)d.textContent='';}};
+    grid.addEventListener('input',girdi);grid.addEventListener('change',girdi);
+    grid.addEventListener('paste',e=>{const el=e.target;const k=el.dataset&&el.dataset.k;const tr0=el.closest&&el.closest('tr.cvyeni');if(!k||!tr0)return;
+      const t=(e.clipboardData||window.clipboardData).getData('text').replace(/\r/g,'');if(!/[\t\n]/.test(t.replace(/\n+$/,'')))return;e.preventDefault();
+      let satirlar=t.split('\n');while(satirlar.length&&!satirlar[satirlar.length-1].trim())satirlar.pop();satirlar=satirlar.map(s=>s.split('\t'));
+      const c0=KS.indexOf(k);if(c0===0&&satirlar.length&&ascii(satirlar[0][0]).trim()==='tarih')satirlar.shift();
+      const r0=+tr0.dataset.i;satirlar.forEach((cells,j)=>{const idx=r0+j;while(S.pt.cvSat.length<=idx)S.pt.cvSat.push(yeniBos());const r=S.pt.cvSat[idx];cells.forEach((val,q)=>{const kk=KS[c0+q];if(kk)yaz(r,kk,val);});r.hata='';});
+      S.pt.zorla=true;render();toast(`${satirlar.length} satır yapıştırıldı. Kaydetmek için "Satırları kaydet".`);});
+    byId('cvSatir10').onclick=()=>{for(let i=0;i<10;i++)S.pt.cvSat.push(yeniBos());S.pt.zorla=true;render();};
+    byId('cvKaydet').onclick=async()=>{if(S.pt.cvKayit)return;const rows=S.pt.cvSat.filter(r=>!bosS(r));if(!rows.length){toast('Kaydedilecek satır yok.');return;}
+      S.pt.cvKayit=true;let yazilan=0,hataN=0;
+      try{const gruplar={};rows.forEach(r=>{const x=dogrula(r);if(x.hata){r.hata=x.hata;hataN++;}else{r.hata='';(gruplar[r.sube]=gruplar[r.sube]||[]).push({r,v:x.v});}});
+        for(const[sid,list] of Object.entries(gruplar)){
+          try{const s0=await getDoc(doc(db,'puantaj',sid,'aylar',ak));const d0=s0.exists()?s0.data():{};
+            if(d0.kesin===true){list.forEach(({r})=>{r.hata=`${subeAdi(sid)} şubesinin ${ayAdi(ak)} ayı kesin kapandı`;hataN++;});continue;}
+            const kilitli=d0.kilitli===true;const ok=[];
+            list.forEach(({r,v})=>{if(kilitli&&(veriTur(v.tur)||{}).y==='sol'){r.hata=`${subeAdi(sid)} muhasebesi onaylı (kilitli): rapor / izin eklenemez`;hataN++;}else ok.push({r,v});});
+            if(!ok.length)continue;const deg={};ok.forEach(({v})=>{deg[v.id]=v;});
+            await veriYaz(sid,ak,{deg,sil:[]},kilitli?{}:{sube:sid,ay:ak},{kilitsiz:true});ok.forEach(({r})=>{r.kaydedildi=true;});yazilan+=ok.length;}
+          catch(e){yazmaHatasi(e);list.forEach(({r})=>{if(!r.kaydedildi){r.hata='Kaydedilemedi, tekrar deneyin';hataN++;}});}}
+      }finally{S.pt.cvKayit=false;}
+      S.pt.cvSat=S.pt.cvSat.filter(r=>!r.kaydedildi);if(yazilan)S.pt.ck=null;S.pt.zorla=true;render();
+      toast(yazilan?`${yazilan} satır kaydedildi${hataN?` · ${hataN} satır hatalı, kırmızı satırları düzeltin`:''}`:`Kaydedilmedi: ${hataN} satır hatalı`);};});}
+function renderPuantajDetay(){if(cokluAcik()){const cg=byId('cvGrid');const ae0=document.activeElement;if(S.pt.gorunum==='veri'&&cg&&cg.contains(ae0)&&/INPUT|SELECT/.test(ae0.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;return renderCoklu();}if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
   const subeSec=S.subeIds.length>1?ptSubeKutu():`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsube1">${esc(sb.ad)}</div></div>`;
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${D.ad}</span></div><div class="ptnav">${subeSec}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
   const ayDeg=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;veriBosTemizle();S.ay=y;S.ayElle=true;S.pt.vsel=null;puantajAc(S.pt.sube);};
