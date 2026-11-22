@@ -712,3 +712,34 @@ table.vg2 td.bi input[data-k]{width:100%;min-width:90px}
 table.vg2 td.bi input[data-k="ad"]{min-width:200px}
 table.vg2 td.bi input[data-k="ack"]{min-width:180px}
 table.vg2 td.bi select[data-k]{min-width:140px;width:100%}
+/* ===== v268: PC'de sekmeler başlıkta (alt çubuk gizli), puantajda sık satır, ince özet, "ⓘ not" düğmesi ===== */
+.ttabs{display:none}
+.notbtn{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--mut);border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
+.notbtn.uyari{background:var(--yel);color:#7a4b00;border-color:#e6c26a}
+.notbtn.on{box-shadow:inset 0 0 0 2px var(--navy)}
+.ptbar .notbtn{margin-left:auto;margin-right:8px;position:relative;z-index:2}
+.ptnotlar{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px 8px;margin:0 0 10px}
+.ptnotlar>.banner{margin:6px 0}.ptnotlar>.legend{margin:6px 0 2px}.ptnotlar>p.note{margin:6px 0}
+@media (min-width:701px) and (hover:hover) and (pointer:fine){
+  .top{padding-block:8px}
+  .top .grow{display:none}
+  .ttabs{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+  .ttabs button{font:inherit;font-size:14px;font-weight:700;color:var(--navy-ink);background:transparent;border:0;border-radius:9px;padding:8px 16px;cursor:pointer;opacity:.88}
+  .ttabs button:hover{background:rgba(255,255,255,.14);opacity:1}
+  .ttabs button.on{background:#fff;color:var(--navy);opacity:1}
+  .ttabs .tsaat{margin-left:10px;font-size:12.5px;font-weight:600;opacity:.75;white-space:nowrap}
+  .tabs{display:none!important}
+  main{padding-bottom:16px}
+  .app.ptd #view table.pt:not(.vt):not(.bl) td{padding-top:5px;padding-bottom:5px}
+  .app.ptd #view table.vt td:not(.bi){padding-top:5px;padding-bottom:5px}
+  .app.ptd #view table.vg2 td.bi input,.app.ptd #view table.vg2 td.bi select{padding-top:4px;padding-bottom:4px}
+  .app.ptd .kpis{display:flex;flex-wrap:wrap;gap:4px 28px;margin:0 6px 6px}
+  .app.ptd .kpi{background:none;border:0;border-radius:0;padding:2px 0;justify-content:flex-start;gap:8px}
+  .app.ptd .kpi span{font-size:12.5px}
+  .app.ptd .kpi b{font-size:15px}
+}
+@media (min-width:701px) and (max-width:1100px) and (hover:hover) and (pointer:fine){
+  .tsube-cap,.ttabs .tsaat{display:none}
+  .ttabs button{padding:7px 10px;font-size:13px}
+  .tsube-sel select,.tsube-btn,.tsube-sel.tek{font-size:15px;min-width:150px}
+}
