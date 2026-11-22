@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=269;
+const APP_SURUM=270;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1762,7 +1762,7 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${L.length} şube</span></div><div class="ptnav">${ptSubeKutu()}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
   h+=`<div class="seg" style="margin:4px 0 12px" id="ptSeg"><button data-v="veri" class="${g==='veri'?'on':''}">Veri girişi</button><button data-v="sol" class="${g==='sol'?'on':''}">Muhasebe</button><button data-v="sag" class="${g==='sag'?'on':''}">Ödemeler</button></div>`;
   const bagla=()=>{{const th=document.querySelector('#view table.pt thead tr:first-child th');const h1=th?th.getBoundingClientRect().height:0;document.querySelectorAll('#view table.pt thead tr.ust th').forEach(c=>c.style.top=h1+'px');}byId('geriL').onclick=listeyeDon;const ad=n=>{const y=ayKaydir(ak,n);if(y<BASLANGIC_AY)return;S.ay=y;S.ayElle=true;S.pt.ck=null;puantajAc(S.pt.sube);};byId('ptPrev').onclick=()=>ad(-1);byId('ptNext').onclick=()=>ad(1);
-    document.querySelectorAll('#ptSeg button').forEach(b=>b.onclick=()=>{S.pt.gorunum=b.dataset.v;render();});};
+    document.querySelectorAll('#ptSeg button').forEach(b=>b.onclick=()=>{S.pt.gorunum=b.dataset.v;if(S.pt.ckEski){S.pt.ckEski=false;S.pt.ck=null;}render();});};
   const ck=S.pt.ck;if(!ck||ck.key!==key){cokluYukle(ak,L,key);return view(h+`<div class="empty-state"><b>${L.length} şube yükleniyor</b>Her şubenin ${ayAdi(ak)} puantajı okunuyor.</div>`,bagla);}
   if(ck.durum==='yukleniyor')return view(h+`<div class="empty-state"><b>${L.length} şube yükleniyor</b>Her şubenin ${ayAdi(ak)} puantajı okunuyor.</div>`,bagla);
   if(ck.durum==='hata')return view(h+`<div class="banner bad">Şubeler okunamadı (${esc(ck.hata||'')}). <button class="btn" id="ckTekrar" style="margin-left:8px">Tekrar dene</button></div>`,()=>{bagla();byId('ckTekrar').onclick=()=>{S.pt.ck=null;render();};});
@@ -1814,9 +1814,11 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
   const turlar=VERI_TUR.filter(t=>!t.gizli);const rid=()=>Math.random().toString(36).slice(2,10);
   const bugunIso=ymd(today()).slice(0,7)===ak?ymd(today()):ymd(new Date(+ak.slice(0,4),+ak.slice(5),0));
   const yeniBos=()=>{const son=(S.pt.cvSat||[])[(S.pt.cvSat||[]).length-1]||{};return{id:rid(),tarih:son.tarih||trTarih(bugunIso),sube:L.includes(son.sube)?son.sube:'',ad:'',tur:'',miktar:'',ack:'',hata:''};};
-  if(!Array.isArray(S.pt.cvSat)||S.pt.cvAy!==ak){S.pt.cvSat=[];S.pt.cvAy=ak;}
-  while(S.pt.cvSat.length<5)S.pt.cvSat.push(yeniBos());
   const bosS=r=>!String(r.ad||'').trim()&&!r.tur&&!String(r.miktar||'').trim()&&!String(r.ack||'').trim()&&!r.turYazi;
+  if(!Array.isArray(S.pt.cvSat)||S.pt.cvAy!==ak){S.pt.cvSat=[];S.pt.cvAy=ak;}
+  S.pt.cvSat=S.pt.cvSat.filter(r=>!r.kaydedildi);while(S.pt.cvSat.filter(bosS).length<5)S.pt.cvSat.push(yeniBos());
+  // Satır dolu sayılır: tarih, şube, ad, tür ve miktar yazılmış (tanınmasa da). Dolu satır, satırdan çıkınca kendiliğinden kaydedilir.
+  const doluS=r=>!!(String(r.tarih||'').trim()&&(r.sube||r.subeYazi)&&String(r.ad||'').trim()&&(r.tur||r.turYazi)&&String(r.miktar??'').trim()!=='');
   // Bir şubede o ay çalışanlar: çalıştığı şubeler (ana şube, SGK şubesi, ek şubeler) ve maaşı o şubede ödenenler.
   const kisiL=sid=>S.personel.filter(p=>(subedeAktif(p,sid)||odemeSubesi(p,ak)===sid)&&aktifAyda(p,ak));
   const dogrula=r=>{const sid=r.sube;
@@ -1836,10 +1838,10 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
     <td class="bi"><input data-k="ack" value="${esc(r.ack)}" autocomplete="off"></td>
     <td class="dur" style="color:var(--bad);font-size:12px;min-width:180px">${esc(r.hata||'')}</td></tr>`;
   const adListe=[...new Set(L.flatMap(sid=>kisiL(sid).map(p=>adBuyuk(p.ad))))].sort((a,b)=>a.localeCompare(b,'tr'));
-  h+=`<div class="banner" style="margin-bottom:10px">Tablonun en altındaki boş satırlara yazın ya da Excel'den yapıştırın (sütun sırası: Tarih · Şube · Ad soyad · Veri türü · Miktar · Açıklama). Her satır, Şube sütunundaki şubeye yazılır. Kişi o şubede çalışmıyorsa satır kırmızı olur ve kaydedilmez. Kayıtlı satırları düzeltmek ya da silmek için tek şubeye dönün.</div>`+kfBar('cveri')+`
+  h+=`<div class="banner" style="margin-bottom:10px">Tablonun en altındaki boş satırlara yazın ya da Excel'den yapıştırın (sütun sırası: Tarih · Şube · Ad soyad · Veri türü · Miktar · Açıklama). Satırı doldurup başka satıra geçince kendiliğinden kaydedilir ve Şube sütunundaki şubeye yazılır. Uyumsuz satır kırmızı kalır, kaydedilmez. Kayıtlı satırları düzeltmek ya da silmek için tek şubeye dönün.</div>`+kfBar('cveri')+`
     <div class="tbl-wrap dondur"><table class="pt vt vg2" id="cvGrid"><thead><tr><th class="rn">#</th>${CV.map(c=>kfBaslik('cveri',c,c.l?'l':'')).join('')}<th></th></tr></thead><tbody>${VR.map((v,i)=>`<tr class="ck"><td class="rn">${i+1}</td><td>${trTarih(v.tarih)}</td><td class="l sbcol">${esc(subeAdi(v.sid))}</td><td class="l"><b>${esc(v.ad||'')}</b></td><td class="l">${esc((veriTur(v.tur)||{}).ad||v.tur)}</td><td style="text-align:right">${mik(v)}</td><td class="l">${esc(v.aciklama||'')}</td><td></td></tr>`).join('')}${S.pt.cvSat.map(yeniH).join('')}</tbody></table></div>
     <datalist id="cvKisiler">${adListe.map(a=>`<option value="${esc(a)}"></option>`).join('')}</datalist>
-    <div class="actions" style="margin:10px 0 4px"><button class="btn primary" id="cvKaydet">Satırları kaydet</button><button class="mini" id="cvSatir10">+10 satır</button></div>${durumNot}`;
+    <div class="actions" style="margin:8px 0 4px"><button class="mini" id="cvSatir10">+10 satır</button></div>${durumNot}`;
   return view(h,()=>{bagla();kfBag('cveri',CV,VR0);byId('ptMenu').onclick=menuTek('veri');
     const grid=byId('cvGrid');const KS=['tarih','sube','ad','tur','miktar','ack'];
     const yaz=(r,k,val)=>{val=String(val==null?'':val);
@@ -1858,10 +1860,18 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
       let satirlar=t.split('\n');while(satirlar.length&&!satirlar[satirlar.length-1].trim())satirlar.pop();satirlar=satirlar.map(s=>s.split('\t'));
       const c0=KS.indexOf(k);if(c0===0&&satirlar.length&&ascii(satirlar[0][0]).trim()==='tarih')satirlar.shift();
       const r0=+tr0.dataset.i;satirlar.forEach((cells,j)=>{const idx=r0+j;while(S.pt.cvSat.length<=idx)S.pt.cvSat.push(yeniBos());const r=S.pt.cvSat[idx];cells.forEach((val,q)=>{const kk=KS[c0+q];if(kk)yaz(r,kk,val);});r.hata='';});
-      S.pt.zorla=true;render();toast(`${satirlar.length} satır yapıştırıldı. Kaydetmek için "Satırları kaydet".`);});
+      const dolu=S.pt.cvSat.filter(r=>!r.kaydedildi&&doluS(r));S.pt.zorla=true;render();if(dolu.length)kaydet(dolu);else toast(`${satirlar.length} satır yapıştırıldı.`);});
+    // Satırdan çıkınca (Enter, Tab, tıklama): satır doluysa kaydedilir; Enter alttaki satırın aynı hücresine geçer.
+    grid.addEventListener('focusout',e=>{const tr=e.target.closest&&e.target.closest('tr.cvyeni');if(!tr)return;setTimeout(()=>{if(tr.contains(document.activeElement))return;const r=S.pt.cvSat[+tr.dataset.i];if(r&&!r.kaydedildi&&!r.kaydediliyor&&doluS(r))kaydet([r]);},0);});
+    grid.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.isComposing)return;const el=e.target;const k=el.dataset&&el.dataset.k;const tr=el.closest&&el.closest('tr.cvyeni');if(!k||!tr)return;e.preventDefault();
+      let n=tr.nextElementSibling;if(!n){for(let i=0;i<10;i++)S.pt.cvSat.push(yeniBos());const r=S.pt.cvSat[+tr.dataset.i];if(r&&doluS(r))kaydet([r]);S.pt.odakI=+tr.dataset.i+1;S.pt.odakK=k;S.pt.zorla=true;render();return;}
+      const x=n.querySelector(`[data-k="${k}"]`);if(x)x.focus();});
+    {const oi=S.pt.odakI,ok=S.pt.odakK;S.pt.odakI=null;if(oi!=null){const x=grid.querySelector(`tr.cvyeni[data-i="${oi}"] [data-k="${ok}"]`);if(x)x.focus();}}
     byId('cvSatir10').onclick=()=>{for(let i=0;i<10;i++)S.pt.cvSat.push(yeniBos());S.pt.zorla=true;render();};
-    byId('cvKaydet').onclick=async()=>{if(S.pt.cvKayit)return;const rows=S.pt.cvSat.filter(r=>!bosS(r));if(!rows.length){toast('Kaydedilecek satır yok.');return;}
-      S.pt.cvKayit=true;let yazilan=0,hataN=0;
+    // Satırı ekranda işaretler (yeniden çizmeden: o an başka hücreye yazılıyor olabilir).
+    const isaretle=r=>{const g=byId('cvGrid');if(!g)return;const tr=g.querySelector(`tr.cvyeni[data-i="${S.pt.cvSat.indexOf(r)}"]`);if(!tr)return;tr.classList.toggle('hata',!!r.hata);tr.classList.toggle('kayitli',!!r.kaydedildi);
+      const d=tr.querySelector('td.dur');if(d){d.textContent=r.hata||(r.kaydedildi?'Kaydedildi ✓':'');d.style.color=r.hata?'var(--bad)':'var(--ok)';}if(r.kaydedildi)tr.querySelectorAll('input,select').forEach(x=>x.disabled=true);};
+    async function kaydet(rows){rows=rows.filter(r=>!r.kaydedildi&&!r.kaydediliyor);if(!rows.length)return;rows.forEach(r=>r.kaydediliyor=true);let yazilan=0,hataN=0;
       try{const gruplar={};rows.forEach(r=>{const x=dogrula(r);if(x.hata){r.hata=x.hata;hataN++;}else{r.hata='';(gruplar[r.sube]=gruplar[r.sube]||[]).push({r,v:x.v});}});
         for(const[sid,list] of Object.entries(gruplar)){
           try{const s0=await getDoc(doc(db,'puantaj',sid,'aylar',ak));const d0=s0.exists()?s0.data():{};
@@ -1869,11 +1879,16 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
             const kilitli=d0.kilitli===true;const ok=[];
             list.forEach(({r,v})=>{if(kilitli&&(veriTur(v.tur)||{}).y==='sol'){r.hata=`${subeAdi(sid)} muhasebesi onaylı (kilitli): rapor / izin eklenemez`;hataN++;}else ok.push({r,v});});
             if(!ok.length)continue;const deg={};ok.forEach(({v})=>{deg[v.id]=v;});
-            await veriYaz(sid,ak,{deg,sil:[]},kilitli?{}:{sube:sid,ay:ak},{kilitsiz:true});ok.forEach(({r})=>{r.kaydedildi=true;});yazilan+=ok.length;}
-          catch(e){yazmaHatasi(e);list.forEach(({r})=>{if(!r.kaydedildi){r.hata='Kaydedilemedi, tekrar deneyin';hataN++;}});}}
-      }finally{S.pt.cvKayit=false;}
-      S.pt.cvSat=S.pt.cvSat.filter(r=>!r.kaydedildi);if(yazilan)S.pt.ck=null;S.pt.zorla=true;render();
-      toast(yazilan?`${yazilan} satır kaydedildi${hataN?` · ${hataN} satır hatalı, kırmızı satırları düzeltin`:''}`:`Kaydedilmedi: ${hataN} satır hatalı`);};});}
+            await veriYaz(sid,ak,{deg,sil:[]},kilitli?{}:{sube:sid,ay:ak},{kilitsiz:true});
+            // Ekrandaki listeye de eklenir; Muhasebe / Ödemeler'e geçince şubeler yeniden okunur.
+            const V0=S.pt.ck&&S.pt.ck.V&&S.pt.ck.V[sid];if(V0&&V0.D)V0.D.veri=[...(V0.D.veri||[]),...ok.map(({v})=>v)];S.pt.ckEski=true;
+            ok.forEach(({r})=>{r.kaydedildi=true;});yazilan+=ok.length;}
+          catch(e){yazmaHatasi(e);list.forEach(({r})=>{if(!r.kaydedildi){r.hata='Kaydedilemedi, satırı yeniden düzenleyin';hataN++;}});}}}
+      finally{rows.forEach(r=>{r.kaydediliyor=false;isaretle(r);});}
+      if(hataN)toast(`${hataN} satır kaydedilmedi: kırmızı satırları düzeltin`);else if(yazilan>1)toast(`${yazilan} satır kaydedildi`);
+      // Odak tabloda değilse listeyi yenile (kaydedilenler yukarıdaki kayıtlı satırlara geçer).
+      {const g=byId('cvGrid');if(yazilan&&g&&!g.contains(document.activeElement)){S.pt.zorla=true;render();}}}
+    });}
 function renderPuantajDetay(){if(cokluAcik()){const cg=byId('cvGrid');const ae0=document.activeElement;if(S.pt.gorunum==='veri'&&cg&&cg.contains(ae0)&&/INPUT|SELECT/.test(ae0.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;return renderCoklu();}if(S.pt.sube&&S.pt.ak!==S.ay&&!S.iscCalisiyor){veriBosTemizle();S.pt.vsel=null;return puantajAc(S.pt.sube);}const vg=byId('vGrid');const ae=document.activeElement;if(S.pt.gorunum==='veri'&&vg&&vg.contains(ae)&&/INPUT|SELECT/.test(ae.tagName)&&!S.pt.zorla)return;S.pt.zorla=false;const ak=S.ay;const sb=subeAyari(S.subeId,ak);const durum=(S.aylar[ak]||{durum:'taslak'}).durum;const D=DURUM[durum]||DURUM.taslak;
   const subeSec=S.subeIds.length>1?ptSubeKutu():`<div class="ptsube"><span class="ptcap">Şube</span><div class="ptsube1">${esc(sb.ad)}</div></div>`;
   let h=`<div class="ptbar"><button class="ptback" id="geriL" aria-label="Şube listesine dön"><span aria-hidden="true">‹</span> Şubeler</button><span class="chip mut ptdurum">${D.ad}</span></div><div class="ptnav">${subeSec}<div class="ptay"><button class="nav-arrow" id="ptPrev" aria-label="Önceki ay" ${ayKaydir(ak,-1)<BASLANGIC_AY?'disabled':''}>‹</button><div class="ttl">${ayAdi(ak)}</div><button class="nav-arrow" id="ptNext" aria-label="Sonraki ay">›</button><button class="nav-arrow dots" id="ptMenu" aria-label="Diğer işlemler">⋮</button></div></div>`;
