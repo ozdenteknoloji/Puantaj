@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=268;
+const APP_SURUM=269;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1825,7 +1825,7 @@ function renderCokluIc(){const ak=S.ay;const L=S.pt.coklu;const key=ak+'|'+L.joi
     if(!r.tur)return{hata:r.turYazi?`Veri türü tanınmadı: ${r.turYazi}`:'Veri türü seçin'};const t=veriTur(r.tur);
     const adT=String(r.ad||'').trim();if(!adT)return{hata:'Ad soyad yazın'};const k=isimAnahtar(adT);const p=kisiL(sid).find(q=>isimAnahtar(q.ad)===k);
     if(!p)return{hata:S.personel.some(q=>isimAnahtar(q.ad)===k)?`${adT} ${subeAdi(sid)} şubesinde çalışan değil (Personel → Çalıştığı şubeler)`:'Böyle bir personel yok'};
-    const ms=String(r.miktar||'').trim();if(!ms)return{hata:'Miktar yok'};if(!/\d/.test(ms))return{hata:'Miktar sayı olmalı'};const n=sayi(ms);if(!isFinite(n)||n===0)return{hata:'Miktar sayı olmalı'};if(Math.abs(n)>1000000)return{hata:'Miktar 1.000.000 üstünde olamaz'};
+    const ms=String(r.miktar||'').trim();if(!ms)return{hata:'Miktar yok'};if(!/\d/.test(ms))return{hata:'Miktar sayı olmalı'};const n=sayi(ms);if(!isFinite(n))return{hata:'Miktar sayı olmalı'};if(Math.abs(n)>1000000)return{hata:'Miktar 1.000.000 üstünde olamaz'};
     return{v:{id:rid(),sira:yeniSira(),tarih:iso,ad:adBuyuk(p.ad),pid:'',tur:t.k,miktar:n,aciklama:String(r.ack||'').trim(),kim:S.me.adSoyad||S.me.kullaniciAdi||'',zaman:new Date().toISOString()}};};
   const yeniH=(r,i)=>`<tr class="cvyeni ${r.hata?'hata':''}" data-i="${i}"><td class="rn">${VR.length+i+1}</td>
     <td class="bi"><input data-k="tarih" value="${esc(r.tarih)}" placeholder="gg.aa.yyyy" inputmode="numeric" autocomplete="off"></td>
