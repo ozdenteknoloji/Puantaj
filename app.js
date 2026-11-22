@@ -114,7 +114,7 @@ window.addEventListener('beforeunload',e=>{if(KAYIT.n>0){e.preventDefault();e.re
 /* ================= Sürüm kontrolü =================
    sistem/surum.min: kayıt yapabilecek en eski uygulama sürümü. İşveren yeni sürümü açınca min yükselir; eski sürümle açık kalan
    telefonlar yazamaz, "yenileyin" ekranı görür (eski kodun hatalı kayıt yapması engellenir). Her yayında APP_SURUM bir artırılır. */
-const APP_SURUM=264;
+const APP_SURUM=265;
 /* ================= Durum ================= */
 const S={subeAdlari:{},user:null,me:null,meYuklendi:false,kurulumVar:null,subeler:{},subeIds:[],subeId:null,personel:[],haftalar:{},aylar:{},
   loaded:{personel:false,haftalar:false},tab:'cizelge',hafta:null,ay:null,
@@ -1727,7 +1727,7 @@ async function cokluYukle(ak,L,key){S.pt.ck={key,durum:'yukleniyor',V:{}};
 // Bir şubenin ödeme / muhasebe satırları (ptVerisi'nin aynısı, şube verileri parametre). Maaş bilgileri hesap süresince geçici olarak o şubeninki yapılır.
 function cokluSubeVerisi(sid,ak,D,maas,prev,O){const sav=S.pt.maas;S.pt.maas=maas||{};
   try{if(D.kesin===true&&D.kesinSonuc){const K=D.kesinSonuc;const sb={...subeAyari(sid,ak),...(K.sb||{})};const satir=(K.satir||[]).map(x=>({...x,sag:x.sag||{},hes:x.hes||{}}));const sol={};satir.forEach(x=>sol[x.pid]=x.sol);return{sid,ak,kilitli:true,kesin:true,sol,satir,sb,D,durum:'kesin'};}
-    const kilitli=D.kilitli===true;let sol=null,tahmini=false;if(kilitli&&D.sol)sol=D.sol;else if(O.m[sid]){sol=ptSol(ak,D,{sid,diger:O.m,ov:O.vg,burada:O.m[sid]});tahmini=true;}
+    const kilitli=D.kilitli===true;let sol=null,tahmini=false;if(kilitli&&D.sol)sol=D.sol;else{/* özeti (çizelgesi) henüz olmayan şube: tek şube ekranıyla aynı hesap; burada:{} verilir ki başka şubenin çizelgesinden özet çekilmesin */sol=ptSol(ak,D,{sid,diger:O.m,ov:O.vg,burada:O.m[sid]||{}});tahmini=true;}
     const sb=subeAyari(sid,ak);if(!sol)return{sid,ak,sol:{},satir:[],sb,D,durum:'yok'};
     const oz=ozBirlestir(veriOzet(D.veri,ak),sol);const net=netMap(ak);const prevSag=(prev&&prev.sag)||{};const sag=D.sag||{};
     const ids=Object.keys(sol).sort((a,b)=>String(sol[a].ad).localeCompare(String(sol[b].ad),'tr'));
